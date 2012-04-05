@@ -1,0 +1,55 @@
+The parser knows a relatively small language:
+
+  name     A string of ascii characters
+
+  value    An integer number
+  
+  type     BYTE               8 bit value
+           | ASCII            8 bit ascii value (expressly not called a 'char')
+           | SHORT            16 bit signed integer
+           | USHORT           16 bit unsigned integer
+           | UINT24           24 bit unsigned integer
+           | LONG             32 bit signed integer
+           | ULONG            32 bit unsigned integer
+           | <type>[<value>]  array notation
+           | <collection identifier>  custom type (think "struct")
+
+
+  record   RESERVED <type>
+           | <type> <name>
+           | (GLOBAL|LOCAL|IMMEDIATE) <type> OFFSET <name>
+  
+      Sometimes specs have "reserved" data, which is a byte, short, etc. that
+      basically acts as a spacer. These will be skipped.
+      
+      For offsets, we need an indicator that tells us whether it's:
+      
+        GLOBAL      relative to the start of this file
+        LOCAL       relative to the start of this collection
+        IMMEDIATE   relative to the next byte's position
+
+  conditional   (<name>==<value>)
+  
+  conditioned   <conditional> { <collection body> }
+  
+      conditioned collection blocks let us generate parsers that can deal with
+      multiple versions of data blocks (since specs tend to change over the years).
+  
+  collection identifier: Collection <name>
+
+  collection: <collection identifier> { <collection body> }
+
+  collection body: (record | collection | conditioned)*
+  
+      Collections can be empty, but if not they list records and possible "private"
+      collections for use as "structs" in that collection. Any parent collection
+      won't see it.
+
+It'll generate JavaScript, for now, because it's a stupidly simple language to generate
+code for. I'm sure any number of other target languages can be added later, because
+honestly, it's not rocket science =)
+
+This library will simply map the binary data to unpacked (as far as it knows how to)
+data in memory, but without any traversal logic; it's simply a data unpacker. This
+allows for data->XML or data->JSON unpacking, and probably also the reverse, provided
+the information from the .spec file is kept ... somewhere...
