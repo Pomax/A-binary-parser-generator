@@ -195,6 +195,9 @@ Collection head {
   LONG fontRevision
   ULONG checkSumAdjustment
   ULONG magicNumber        // Must be 0x5F0F3CF5
+  (magicNumber!=0x5F0F3CF5) {
+    TERMINATE "magic number mismatch - this is not an OpenType font file, or at least not a legal one."
+  }
   USHORT flags
   USHORT unitsPerEm
   LONG created
@@ -309,7 +312,7 @@ Collection name {
     _langTagRecord[langTagCount] langTagRecords
   }
  
-  // Start of storage area. Not decided on how to do the referencing
+  // Start of storage area. Not decided on how to do the referencing here yet
 }
 
 /**

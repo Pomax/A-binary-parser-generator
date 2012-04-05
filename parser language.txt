@@ -1,6 +1,7 @@
 The parser knows a relatively small language:
 
-  name     A string of ascii characters
+  string   A string of ascii characters
+  name     <string>
 
   value    An integer number
   
@@ -18,6 +19,7 @@ The parser knows a relatively small language:
   record   RESERVED <type>
            | <type> <name>
            | (GLOBAL|LOCAL|IMMEDIATE) <type> OFFSET <name>
+           | TERMINATE "<string>"
   
       Sometimes specs have "reserved" data, which is a byte, short, etc. that
       basically acts as a spacer. These will be skipped.
@@ -28,7 +30,11 @@ The parser knows a relatively small language:
         LOCAL       relative to the start of this collection
         IMMEDIATE   relative to the next byte's position
 
+      TERMINATE will cause the generated parser to print the termination
+      message, and cancel the parsing process.
+
   conditional   (<name>==<value>)
+                | (<name>!=<value>)
   
   conditioned   <conditional> { <collection body> }
   
