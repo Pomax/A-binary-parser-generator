@@ -1,0 +1,7 @@
+A tool for generating binary data parsers,
+based on a spec file that tells us what the
+data layout is.
+
+Because "why on earth do I have to write a
+parser from scratch when the spec is right
+there?"
