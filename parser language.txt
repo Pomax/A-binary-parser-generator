@@ -4,7 +4,7 @@ The parser knows a relatively small language:
   name     <string>
 
   value    An integer number
-  
+
   type     BYTE               8 bit value
            | ASCII            8 bit ascii value (expressly not called a 'char')
            | SHORT            16 bit signed integer
@@ -13,43 +13,54 @@ The parser knows a relatively small language:
            | LONG             32 bit signed integer
            | ULONG            32 bit unsigned integer
            | <type>[<value>]  array notation
-           | <collection identifier>  custom type (think "struct")
+           | <collection name>  custom type (think "struct")
 
 
   record   RESERVED <type>
            | <type> <name>
-           | (GLOBAL|LOCAL|IMMEDIATE) <type> OFFSET <name>
-           | TERMINATE "<string>"
-  
+           | (GLOBAL|LOCAL|IMMEDIATE)? <type> OFFSET <name> (TO <collection name>)? (RELATIVE TO <name>)?
+           | TERMINATE <string>
+
       Sometimes specs have "reserved" data, which is a byte, short, etc. that
       basically acts as a spacer. These will be skipped.
-      
+
       For offsets, we need an indicator that tells us whether it's:
-      
+
         GLOBAL      relative to the start of this file
         LOCAL       relative to the start of this collection
         IMMEDIATE   relative to the next byte's position
 
-      TERMINATE will cause the generated parser to print the termination
-      message, and cancel the parsing process.
+      Or, if the offset is relative to another record, RELATIVE TO <name of that
+      record, within scope>.
+
+      TERMINATE will cause the generated parser to print the termination message, and
+      cancel the parsing process.
 
   conditional   (<name>==<value>)
                 | (<name>!=<value>)
-  
+
   conditioned   <conditional> { <collection body> }
-  
+
       conditioned collection blocks let us generate parsers that can deal with
       multiple versions of data blocks (since specs tend to change over the years).
-  
-  collection identifier: Collection <name>
+
+  collection name: <name>
+  collection identifier: Collection <collection name>
 
   collection: <collection identifier> { <collection body> }
 
   collection body: (record | collection | conditioned)*
-  
+
       Collections can be empty, but if not they list records and possible "private"
       collections for use as "structs" in that collection. Any parent collection
       won't see it.
+
+It has an even smaller set of functions:
+
+  STRING(<name>)   returns the string representation of the passed thing
+  VALUE(<name>)    returns the decimal value representation of the passed thing
+
+The language also supports /* block comments */ as well as // line comments
 
 It'll generate JavaScript, for now, because it's a stupidly simple language to generate
 code for. I'm sure any number of other target languages can be added later, because

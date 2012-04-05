@@ -1,17 +1,17 @@
 /**
 
   This is the specification for OpenType fonts, based on the information
-  found at https://www.microsoft.com/typography/otspec/otff.htm and 
+  found at https://www.microsoft.com/typography/otspec/otff.htm and
   linked pages for individual tables.
 
 **/
 
 Collection _tableRecord
 {
-  NAMED COLLECTION ULONG tag  // four byte table name
-  ULONG checkSum              // CheckSum for this table.
-  GLOBAL ULONG OFFSET offset  // Offset from beginning of TrueType font file.
-  LOCAL ULONG SIZE length     // Length of this table. 
+  NAMED COLLECTION ULONG tag                // four byte table name
+  ULONG checkSum                            // CheckSum for this table.
+  GLOBAL ULONG OFFSET offset TO STRING(tag) // Offset from beginning of TrueType font file.
+  LOCAL ULONG SIZE length                   // Length of this table.
 }
 
 Collection SFNT
@@ -27,7 +27,7 @@ Collection SFNT
 /**
 
   Required tables:
- 
+
     cmap - Character to glyph mapping
     head - Font header
     hhea - Horizontal header
@@ -42,12 +42,6 @@ Collection SFNT
 Collection cmap {
 
   // "private" collection
-  Collection _encodingRecord {
-    USHORT platformID
-    USHORT encodingID
-    LOCAL ULONG OFFSET offset  // offset from beginning of table to the subtable for this encoding.
-  }
-  
   Collection _subtable {
     USHORT format
     (format==0) {
@@ -56,7 +50,7 @@ Collection cmap {
       BYTE[256] glyphIdArray
     }
     (format==2) {
-    
+
       // "private" collection
       Collection _subHeaders {
         USHORT firstCode
@@ -64,7 +58,7 @@ Collection cmap {
         SHORT idDelta
         USHORT idRangeOffset
       }
-    
+
       USHORT length
       USHORT language
       USHORT[256] subHeaderKeys
@@ -100,7 +94,7 @@ Collection cmap {
         ULONG endCharCode
         ULONG startGlyphID
       }
-    
+
       RESERVED USHORT
       ULONG length
       ULONG language
@@ -165,12 +159,12 @@ Collection cmap {
         ULONG	numUVSMappings
         _UVSMapping[numUVSMappings] UVSMappings
       }
-      
+
       Collection _varSelectorRecord {
         UINT24 varSelector
-        IMMEDIATE ULONG OFFSET defaultUVSOffset      // Offset to Default UVS Table, from here. May be 0.
-        IMMEDIATE ULONG OFFSET nonDefaultUVSOffset   // Offset to Non-Default UVS Table, from here. May be 0.
-        
+        IMMEDIATE ULONG OFFSET defaultUVSOffset TO _defaultUVSTable        // Offset to Default UVS Table, from here. May be 0.
+        IMMEDIATE ULONG OFFSET nonDefaultUVSOffset TO _nonDefaultUVSTable  // Offset to Non-Default UVS Table, from here. May be 0.
+
         // I don't actually know what happens here. The documentation is not clear enough
       }
 
@@ -178,7 +172,12 @@ Collection cmap {
       ULONG numVarSelectorRecords
       _varSelectorRecord[numVarSelectorRecords] varSelectorRecords
     }
+  }
 
+  Collection _encodingRecord {
+    USHORT platformID
+    USHORT encodingID
+    LOCAL ULONG OFFSET offset TO _subtable // offset from beginning of table to the subtable for this encoding.
   }
 
   USHORT version
@@ -196,7 +195,7 @@ Collection head {
   ULONG checkSumAdjustment
   ULONG magicNumber        // Must be 0x5F0F3CF5
   (magicNumber!=0x5F0F3CF5) {
-    TERMINATE "magic number mismatch - this is not an OpenType font file, or at least not a legal one."
+    TERMINATE magic number mismatch - this is not an OpenType font file, or at least not a legal one.
   }
   USHORT flags
   USHORT unitsPerEm
@@ -282,20 +281,19 @@ Collection maxp {
  */
 Collection name {
 
-  // "private" collection
+  // "private" collections
   Collection _nameRecord {
     USHORT platformID
     USHORT encodingID
     USHORT languageID
     USHORT nameID
     USHORT length
-    RELATIVE USHORT OFFSET offset // String offset from start of storage area (in bytes)
+    USHORT OFFSET offset RELATIVE TO stringOffset // String offset from start of storage area (in bytes)
   }
 
-  // "private" collection
   Collection _langTagRecord {
     USHORT length
-    RELATIVE USHORT OFFSET offset // String offset from start of storage area (in bytes)
+    USHORT OFFSET offset RELATIVE TO stringOffset // String offset from start of storage area (in bytes)
   }
 
   USHORT format
@@ -311,7 +309,7 @@ Collection name {
     USHORT langTagCount
     _langTagRecord[langTagCount] langTagRecords
   }
- 
+
   // Start of storage area. Not decided on how to do the referencing here yet
 }
 
@@ -320,187 +318,187 @@ Collection name {
  */
 Collection OS/2 {
   USHORT version
-  
+
   // https://www.microsoft.com/typography/otspec/os2ver0.htm
   (version==0x0000) {
-    SHORT xAvgCharWidth 
-    USHORT usWeightClass 
-    USHORT usWidthClass 
-    USHORT fsType 
-    SHORT ySubscriptXSize 
-    SHORT ySubscriptYSize 
-    SHORT ySubscriptXOffset 
-    SHORT ySubscriptYOffset 
-    SHORT ySuperscriptXSize 
-    SHORT ySuperscriptYSize 
-    SHORT ySuperscriptXOffset 
-    SHORT ySuperscriptYOffset 
-    SHORT yStrikeoutSize 
-    SHORT yStrikeoutPosition 
+    SHORT xAvgCharWidth
+    USHORT usWeightClass
+    USHORT usWidthClass
+    USHORT fsType
+    SHORT ySubscriptXSize
+    SHORT ySubscriptYSize
+    SHORT ySubscriptXOffset
+    SHORT ySubscriptYOffset
+    SHORT ySuperscriptXSize
+    SHORT ySuperscriptYSize
+    SHORT ySuperscriptXOffset
+    SHORT ySuperscriptYOffset
+    SHORT yStrikeoutSize
+    SHORT yStrikeoutPosition
     SHORT sFamilyClass
     BYTE[10] panose
     ULONG[4] ulCharRange //Bits 0-31
     ASCII[4] achVendID
-    USHORT fsSelection 
-    USHORT usFirstCharIndex 
-    USHORT usLastCharIndex 
-    SHORT sTypoAscender 
-    SHORT sTypoDescender 
-    SHORT sTypoLineGap 
-    USHORT usWinAscent 
-    USHORT usWinDescent 
+    USHORT fsSelection
+    USHORT usFirstCharIndex
+    USHORT usLastCharIndex
+    SHORT sTypoAscender
+    SHORT sTypoDescender
+    SHORT sTypoLineGap
+    USHORT usWinAscent
+    USHORT usWinDescent
   }
 
   //https://www.microsoft.com/typography/otspec/os2ver1.htm
   (version==0x0001) {
-    SHORT xAvgCharWidth 
-    USHORT usWeightClass 
-    USHORT usWidthClass 
-    USHORT fsType 
-    SHORT ySubscriptXSize 
-    SHORT ySubscriptYSize 
-    SHORT ySubscriptXOffset 
-    SHORT ySubscriptYOffset 
-    SHORT ySuperscriptXSize 
-    SHORT ySuperscriptYSize 
-    SHORT ySuperscriptXOffset 
-    SHORT ySuperscriptYOffset 
-    SHORT yStrikeoutSize 
-    SHORT yStrikeoutPosition 
-    SHORT sFamilyClass 
+    SHORT xAvgCharWidth
+    USHORT usWeightClass
+    USHORT usWidthClass
+    USHORT fsType
+    SHORT ySubscriptXSize
+    SHORT ySubscriptYSize
+    SHORT ySubscriptXOffset
+    SHORT ySubscriptYOffset
+    SHORT ySuperscriptXSize
+    SHORT ySuperscriptYSize
+    SHORT ySuperscriptXOffset
+    SHORT ySuperscriptYOffset
+    SHORT yStrikeoutSize
+    SHORT yStrikeoutPosition
+    SHORT sFamilyClass
     BYTE[10] panose
     ULONG ulUnicodeRange1 // Bits 0-31
     ULONG ulUnicodeRange2 // Bits 32-63
     ULONG ulUnicodeRange3 // Bits 64-95
     ULONG ulUnicodeRange4 // Bits 96-127
     ASCII[4] achVendID
-    USHORT fsSelection 
-    USHORT usFirstCharIndex 
-    USHORT usLastCharIndex 
-    SHORT sTypoAscender 
-    SHORT sTypoDescender 
-    SHORT sTypoLineGap 
-    USHORT usWinAscent 
-    USHORT usWinDescent 
+    USHORT fsSelection
+    USHORT usFirstCharIndex
+    USHORT usLastCharIndex
+    SHORT sTypoAscender
+    SHORT sTypoDescender
+    SHORT sTypoLineGap
+    USHORT usWinAscent
+    USHORT usWinDescent
     ULONG ulCodePageRange1 // Bits 0-31
     ULONG ulCodePageRange2 // Bits 32-63
   }
 
   // https://www.microsoft.com/typography/otspec/os2ver2.htm
   (version==0x0002) {
-    SHORT xAvgCharWidth 
-    USHORT usWeightClass 
-    USHORT usWidthClass 
-    USHORT fsType 
-    SHORT ySubscriptXSize 
-    SHORT ySubscriptYSize 
-    SHORT ySubscriptXOffset 
-    SHORT ySubscriptYOffset 
-    SHORT ySuperscriptXSize 
-    SHORT ySuperscriptYSize 
-    SHORT ySuperscriptXOffset 
-    SHORT ySuperscriptYOffset 
-    SHORT yStrikeoutSize 
-    SHORT yStrikeoutPosition 
-    SHORT sFamilyClass 
+    SHORT xAvgCharWidth
+    USHORT usWeightClass
+    USHORT usWidthClass
+    USHORT fsType
+    SHORT ySubscriptXSize
+    SHORT ySubscriptYSize
+    SHORT ySubscriptXOffset
+    SHORT ySubscriptYOffset
+    SHORT ySuperscriptXSize
+    SHORT ySuperscriptYSize
+    SHORT ySuperscriptXOffset
+    SHORT ySuperscriptYOffset
+    SHORT yStrikeoutSize
+    SHORT yStrikeoutPosition
+    SHORT sFamilyClass
     BYTE[10] panose
     ULONG ulUnicodeRange1 // Bits 0-31
     ULONG ulUnicodeRange2 // Bits 32-63
     ULONG ulUnicodeRange3 // Bits 64-95
     ULONG ulUnicodeRange4 // Bits 96-127
     ASCII[4] achVendID
-    USHORT fsSelection 
-    USHORT usFirstCharIndex 
-    USHORT usLastCharIndex 
-    SHORT sTypoAscender 
-    SHORT sTypoDescender 
-    SHORT sTypoLineGap 
-    USHORT usWinAscent 
-    USHORT usWinDescent 
+    USHORT fsSelection
+    USHORT usFirstCharIndex
+    USHORT usLastCharIndex
+    SHORT sTypoAscender
+    SHORT sTypoDescender
+    SHORT sTypoLineGap
+    USHORT usWinAscent
+    USHORT usWinDescent
     ULONG ulCodePageRange1 // Bits 0-31
     ULONG ulCodePageRange2 // Bits 32-63
-    SHORT sxHeight 
-    SHORT sCapHeight 
-    USHORT usDefaultChar 
-    USHORT usBreakChar 
+    SHORT sxHeight
+    SHORT sCapHeight
+    USHORT usDefaultChar
+    USHORT usBreakChar
     USHORT usMaxContext
   }
 
   // https://www.microsoft.com/typography/otspec/os2ver3.htm
   (version==0x0003) {
-    SHORT xAvgCharWidth 
-    USHORT usWeightClass 
-    USHORT usWidthClass 
-    USHORT fsType 
-    SHORT ySubscriptXSize 
-    SHORT ySubscriptYSize 
-    SHORT ySubscriptXOffset 
-    SHORT ySubscriptYOffset 
-    SHORT ySuperscriptXSize 
-    SHORT ySuperscriptYSize 
-    SHORT ySuperscriptXOffset 
-    SHORT ySuperscriptYOffset 
-    SHORT yStrikeoutSize 
-    SHORT yStrikeoutPosition 
-    SHORT sFamilyClass 
+    SHORT xAvgCharWidth
+    USHORT usWeightClass
+    USHORT usWidthClass
+    USHORT fsType
+    SHORT ySubscriptXSize
+    SHORT ySubscriptYSize
+    SHORT ySubscriptXOffset
+    SHORT ySubscriptYOffset
+    SHORT ySuperscriptXSize
+    SHORT ySuperscriptYSize
+    SHORT ySuperscriptXOffset
+    SHORT ySuperscriptYOffset
+    SHORT yStrikeoutSize
+    SHORT yStrikeoutPosition
+    SHORT sFamilyClass
     BYTE[10] panose
     ULONG ulUnicodeRange1 // Bits 0-31
     ULONG ulUnicodeRange2 // Bits 32-63
     ULONG ulUnicodeRange3 // Bits 64-95
     ULONG ulUnicodeRange4 // Bits 96-127
     ASCII[4] achVendID
-    USHORT fsSelection 
-    USHORT usFirstCharIndex 
-    USHORT usLastCharIndex 
-    SHORT sTypoAscender 
-    SHORT sTypoDescender 
-    SHORT sTypoLineGap 
-    USHORT usWinAscent 
-    USHORT usWinDescent 
+    USHORT fsSelection
+    USHORT usFirstCharIndex
+    USHORT usLastCharIndex
+    SHORT sTypoAscender
+    SHORT sTypoDescender
+    SHORT sTypoLineGap
+    USHORT usWinAscent
+    USHORT usWinDescent
     ULONG ulCodePageRange1 // Bits 0-31
     ULONG ulCodePageRange2 // Bits 32-63
-    SHORT sxHeight 
-    SHORT sCapHeight 
-    USHORT usDefaultChar 
-    USHORT usBreakChar 
+    SHORT sxHeight
+    SHORT sCapHeight
+    USHORT usDefaultChar
+    USHORT usBreakChar
     USHORT usMaxContext
   }
   (version==0x0004) {
-    SHORT xAvgCharWidth 
-    USHORT usWeightClass 
-    USHORT usWidthClass 
-    USHORT fsType 
-    SHORT ySubscriptXSize 
-    SHORT ySubscriptYSize 
-    SHORT ySubscriptXOffset 
-    SHORT ySubscriptYOffset 
-    SHORT ySuperscriptXSize 
-    SHORT ySuperscriptYSize 
-    SHORT ySuperscriptXOffset 
-    SHORT ySuperscriptYOffset 
-    SHORT yStrikeoutSize 
-    SHORT yStrikeoutPosition 
-    SHORT sFamilyClass 
+    SHORT xAvgCharWidth
+    USHORT usWeightClass
+    USHORT usWidthClass
+    USHORT fsType
+    SHORT ySubscriptXSize
+    SHORT ySubscriptYSize
+    SHORT ySubscriptXOffset
+    SHORT ySubscriptYOffset
+    SHORT ySuperscriptXSize
+    SHORT ySuperscriptYSize
+    SHORT ySuperscriptXOffset
+    SHORT ySuperscriptYOffset
+    SHORT yStrikeoutSize
+    SHORT yStrikeoutPosition
+    SHORT sFamilyClass
     BYTE[10] panose
     ULONG ulUnicodeRange1 // Bits 0-31
     ULONG ulUnicodeRange2 // Bits 32-63
     ULONG ulUnicodeRange3 // Bits 64-95
     ULONG ulUnicodeRange4 // Bits 96-127
     ASCII[4] achVendID
-    USHORT fsSelection 
-    USHORT usFirstCharIndex 
-    USHORT usLastCharIndex 
-    SHORT sTypoAscender 
-    SHORT sTypoDescender 
-    SHORT sTypoLineGap 
-    USHORT usWinAscent 
-    USHORT usWinDescent 
+    USHORT fsSelection
+    USHORT usFirstCharIndex
+    USHORT usLastCharIndex
+    SHORT sTypoAscender
+    SHORT sTypoDescender
+    SHORT sTypoLineGap
+    USHORT usWinAscent
+    USHORT usWinDescent
     ULONG ulCodePageRange1 // Bits 0-31
     ULONG ulCodePageRange2 // Bits 32-63
-    SHORT sxHeight 
-    SHORT sCapHeight 
-    USHORT usDefaultChar 
-    USHORT usBreakChar 
+    SHORT sxHeight
+    SHORT sCapHeight
+    USHORT usDefaultChar
+    USHORT usBreakChar
     USHORT usMaxContext
   }
 }
@@ -531,13 +529,13 @@ Collection post {
 /**
 
   Optional tables: TTF:
-  
+
     cvt	 - Control Value Table
     fpgm - Font program
     glyf - Glyph data
     loca - Index to location
     prep - CVT Program
-  
+
 **/
 
 Collection cvt  {}
@@ -549,10 +547,10 @@ Collection prep {}
 /**
 
   Optional tables: CFF:
-      
+
     CFF  - PostScript font program (compact font format)
     VORG - Vertical Origin
-  
+
 **/
 
 Collection CFF  {}
@@ -561,7 +559,7 @@ Collection VORG {}
 /**
 
   Advanced typographic tables:
-  
+
     BASE - Baseline data
     GDEF - Glyph definition data
     GPOS - Glyph positioning data
@@ -577,7 +575,7 @@ Collection GSUB {}
 Collection JSTF {}
 
 /**
-  
+
   Other opentype tables:
 
     DSIG - Digital signature
