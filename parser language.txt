@@ -20,6 +20,7 @@ The parser knows a relatively small language:
            | <type> <name>
            | (GLOBAL|LOCAL|IMMEDIATE)? <type> OFFSET <name> (TO <collection name>)? (RELATIVE TO <name>)?
            | TERMINATE <string>
+           | WARN <string>
 
       Sometimes specs have "reserved" data, which is a byte, short, etc. that
       basically acts as a spacer. These will be skipped.
@@ -35,6 +36,8 @@ The parser knows a relatively small language:
 
       TERMINATE will cause the generated parser to print the termination message, and
       cancel the parsing process.
+      
+      WARN will cause a message to be generated, without terminating the parsing process.
 
   conditional   (<name>==<value>)
                 | (<name>!=<value>)
@@ -57,8 +60,8 @@ The parser knows a relatively small language:
 
 It has an even smaller set of functions:
 
-  STRING(<name>)   returns the string representation of the passed thing
-  VALUE(<name>)    returns the decimal value representation of the passed thing
+  VALUE(<name>)    returns the value of the passed record
+
 
 The language also supports /* block comments */ as well as // line comments
 

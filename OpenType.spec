@@ -6,17 +6,17 @@
 
 **/
 
-Collection _tableRecord
-{
-  NAMED COLLECTION ULONG tag                // four byte table name
-  ULONG checkSum                            // CheckSum for this table.
-  GLOBAL ULONG OFFSET offset TO STRING(tag) // Offset from beginning of TrueType font file.
-  LOCAL ULONG SIZE length                   // Length of this table.
-}
+Collection SFNT {
 
-Collection SFNT
-{
-  LONG version                         // 0x00010000 for TTF , string "OTTO" for CFF
+  // "private" collection
+  Collection _tableRecord {
+    ASCII[4] tag                             // four byte table name
+    ULONG checkSum                           // CheckSum for this table.
+    GLOBAL ULONG OFFSET offset TO VALUE(tag) // Offset from beginning of TrueType font file.
+    ULONG length                             // Length of this table.
+  }
+
+  LONG version                         // 0x00010000 for TTF , string 'OTTO' for CFF
   USHORT numTables                     // Number of tables in this font
   USHORT searchRange                   // (Maximum power of 2 <= numTables) x 16.
   USHORT entrySelector                 // Log2(maximum power of 2 <= numTables).
@@ -39,17 +39,21 @@ Collection SFNT
 
 **/
 
+
+/**
+ * https://www.microsoft.com/typography/otspec/cmap.htm
+ */
 Collection cmap {
 
   // "private" collection
   Collection _subtable {
     USHORT format
-    (format==0) {
+    if(format==0) {
       USHORT length
       USHORT language
       BYTE[256] glyphIdArray
     }
-    (format==2) {
+    if(format==2) {
 
       // "private" collection
       Collection _subHeaders {
@@ -62,11 +66,12 @@ Collection cmap {
       USHORT length
       USHORT language
       USHORT[256] subHeaderKeys
-      _subHeaders[] subHeaders // Variable-length array of subHeader structures.
-      USHORT[] glyphIndexArray // Variable-length array containing subarrays used for mapping the low byte of 2-byte characters.
-
+      
+      /* What is the value for these lengths? I don't understand the description in the official specification */
+      _subHeaders[0] subHeaders // Variable-length array of subHeader structures.
+      USHORT[0] glyphIndexArray // Variable-length array containing subarrays used for mapping the low byte of 2-byte characters.
     }
-    (format==4) {
+    if(format==4) {
       USHORT length
       USHORT language
       USHORT segCountX2
@@ -78,16 +83,16 @@ Collection cmap {
       USHORT[segCount] startCount
       SHORT[segCount] idDelta
       USHORT[segCount] idRangeOffset
-      USHORT[] glyphIdArray
+      USHORT[REMAINDER] glyphIdArray
     }
-    (format==6) {
+    if(format==6) {
       USHORT length
       USHORT language
       USHORT firstCode
       USHORT entryCount
       USHORT[entryCount] glyphIdArray
     }
-    (format==8) {
+    if(format==8) {
       // "private" collection
       Collection _group {
         ULONG startCharCode
@@ -102,7 +107,7 @@ Collection cmap {
       ULONG nGroups
       _group[nGroups] groups
     }
-    (format==10) {
+    if(format==10) {
       RESERVED USHORT
       ULONG length
       ULONG language
@@ -110,7 +115,7 @@ Collection cmap {
       ULONG numChars
       USHORT[numChars] glyphs
     }
-    (format==12) {
+    if(format==12) {
       // "private" collection
       Collection _group {
         ULONG startCharCode
@@ -124,7 +129,7 @@ Collection cmap {
       ULONG nGroups
       _group[nGroups] groups
     }
-    (format==13) {
+    if(format==13) {
       // "private" collection
       Collection _group {
         ULONG startCharCode
@@ -138,7 +143,7 @@ Collection cmap {
       ULONG nGroups
       _group[nGroups] groups
     }
-    (format==14) {
+    if(format==14) {
       // "private" collections
       Collection _unicodeValueRanges {
         UINT24 startUnicodeValue
@@ -165,7 +170,7 @@ Collection cmap {
         IMMEDIATE ULONG OFFSET defaultUVSOffset TO _defaultUVSTable        // Offset to Default UVS Table, from here. May be 0.
         IMMEDIATE ULONG OFFSET nonDefaultUVSOffset TO _nonDefaultUVSTable  // Offset to Non-Default UVS Table, from here. May be 0.
 
-        // I don't actually know what happens here. The documentation is not clear enough
+        /* I don't actually know what happens here. The documentation is not clear enough */
       }
 
       ULONG length
@@ -193,8 +198,8 @@ Collection head {
   LONG version
   LONG fontRevision
   ULONG checkSumAdjustment
-  ULONG magicNumber        // Must be 0x5F0F3CF5
-  (magicNumber!=0x5F0F3CF5) {
+  ULONG magicNumber
+  if(magicNumber!=0x5F0F3CF5) {
     TERMINATE magic number mismatch - this is not an OpenType font file, or at least not a legal one.
   }
   USHORT flags
@@ -208,6 +213,9 @@ Collection head {
   USHORT macStyle
   USHORT lowestRecPPEM
   SHORT fontDirectionHint // Deprecated, must be 2.
+  if(fontDirectionHint!=2) {
+    WARN fontDirectionHint has the wrong value: this record has been deprecated and should be set to 2
+  }
   SHORT indexToLocFormat  // 0 for USHORT offsets, 1 for ULONG offsets
   SHORT glyphDataFormat
 }
@@ -246,8 +254,8 @@ Collection hmtx {
     SHORT lsb;
   }
 
-  _longHorMetric[hhea->numberOfHMetrics] hMetrics
-  SHORT[maxp->numGlyphs - hhea->numberOfHMetrics] leftSideBearing
+  _longHorMetric[hhea.numberOfHMetrics] hMetrics
+  SHORT[maxp.numGlyphs - hhea.numberOfHMetrics] leftSideBearing
 }
 
 /**
@@ -255,10 +263,10 @@ Collection hmtx {
  */
 Collection maxp {
   LONG version
-  (version==0x00005000) { // CFF
+  if(version==0x00005000) { // CFF
     USHORT numGlyphs
   }
-  (version==0x00010000) { // TTF
+  if(version==0x00010000) { // TTF
     USHORT numGlyphs
     USHORT maxPoints
     USHORT maxContours
@@ -288,39 +296,42 @@ Collection name {
     USHORT languageID
     USHORT nameID
     USHORT length
-    USHORT OFFSET offset RELATIVE TO stringOffset // String offset from start of storage area (in bytes)
+    USHORT offset // String offset from start of storage area (in bytes)
+    //  USHORT OFFSET offset RELATIVE TO name.stringOffset
   }
 
   Collection _langTagRecord {
     USHORT length
-    USHORT OFFSET offset RELATIVE TO stringOffset // String offset from start of storage area (in bytes)
+    USHORT OFFSET offset RELATIVE TO name.stringOffset // String offset from start of storage area (in bytes)
   }
 
   USHORT format
-  (format==0) {
+  if(format==0) {
     USHORT count
-    LOCAL USHORT OFFSET stringOffset	// Offset to start of string storage, from start of table
+    USHORT stringOffset
+    //  LOCAL USHORT OFFSET stringOffset  // Offset to start of string storage, from start of table
     _nameRecord[count] nameRecords
   }
-  (format==1) {
+  if(format==1) {
     USHORT count
-    LOCAL USHORT OFFSET stringOffset	// Offset to start of string storage, from start of table.
+    USHORT stringOffset
+    //  LOCAL USHORT OFFSET stringOffset  // Offset to start of string storage, from start of table.
     _nameRecord[count] nameRecord
     USHORT langTagCount
     _langTagRecord[langTagCount] langTagRecords
   }
 
-  // Start of storage area. Not decided on how to do the referencing here yet
+  // Start of storage area. Not decided on how to do the referencing here yet...
 }
 
 /**
  * https://www.microsoft.com/typography/otspec/os2.htm
  */
-Collection OS/2 {
+Collection OS_2 {
   USHORT version
 
   // https://www.microsoft.com/typography/otspec/os2ver0.htm
-  (version==0x0000) {
+  if(version==0x0000) {
     SHORT xAvgCharWidth
     USHORT usWeightClass
     USHORT usWidthClass
@@ -350,7 +361,7 @@ Collection OS/2 {
   }
 
   //https://www.microsoft.com/typography/otspec/os2ver1.htm
-  (version==0x0001) {
+  if(version==0x0001) {
     SHORT xAvgCharWidth
     USHORT usWeightClass
     USHORT usWidthClass
@@ -385,7 +396,7 @@ Collection OS/2 {
   }
 
   // https://www.microsoft.com/typography/otspec/os2ver2.htm
-  (version==0x0002) {
+  if(version==0x0002) {
     SHORT xAvgCharWidth
     USHORT usWeightClass
     USHORT usWidthClass
@@ -425,7 +436,7 @@ Collection OS/2 {
   }
 
   // https://www.microsoft.com/typography/otspec/os2ver3.htm
-  (version==0x0003) {
+  if(version==0x0003) {
     SHORT xAvgCharWidth
     USHORT usWeightClass
     USHORT usWidthClass
@@ -463,7 +474,7 @@ Collection OS/2 {
     USHORT usBreakChar
     USHORT usMaxContext
   }
-  (version==0x0004) {
+  if(version==0x0004) {
     SHORT xAvgCharWidth
     USHORT usWeightClass
     USHORT usWidthClass
@@ -506,7 +517,8 @@ Collection OS/2 {
 // https://www.microsoft.com/typography/otspec/post.htm
 Collection post {
   ULONG version
-  _fixed italicAngle
+//  _fixed italicAngle
+  ULONG italicAngle
   SHORT underlinePosition
   SHORT underlineThickness
   ULONG isFixedPitch
@@ -515,12 +527,12 @@ Collection post {
   ULONG minMemType1
   ULONG maxMemType1
 
-  (version==0x00020000) {
+  if(version==0x00020000) {
     USHORT numberOfGlyphs  // this should be the same as maxp->numGlyphs
     USHORT[numberOfGlyphs] glyphNameIndex
     ASCII[numberNewGlyphs] names
   }
-  (version==0x00025000) {
+  if(version==0x00025000) {
     USHORT numberOfGlyphs
     ASCII[numberOfGlyphs] offset
   }
@@ -538,7 +550,7 @@ Collection post {
 
 **/
 
-Collection cvt  {}
+Collection cvt_ {}
 Collection fpgm {}
 Collection glyf {}
 Collection loca {}
@@ -553,7 +565,7 @@ Collection prep {}
 
 **/
 
-Collection CFF  {}
+Collection CFF_ {}
 Collection VORG {}
 
 /**
