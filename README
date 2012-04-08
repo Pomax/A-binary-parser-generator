@@ -5,3 +5,7 @@ data layout is.
 Because "why on earth do I have to write a
 parser from scratch when the spec is right
 there?"
+
+A demonstrator is currently up on:
+
+http://pomax.nihongoresources.com/pages/ABinaryParserGenerator/
