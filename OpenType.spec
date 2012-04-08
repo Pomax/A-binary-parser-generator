@@ -78,12 +78,12 @@ Collection cmap {
       USHORT searchRange
       USHORT entrySelector
       USHORT rangeShift
-      USHORT[segCount] endCount
+      USHORT[segCountX2] endCount // the table encodes segCount as twice the value it really is...
       RESERVED USHORT
       USHORT[segCount] startCount
       SHORT[segCount] idDelta
       USHORT[segCount] idRangeOffset
-      USHORT[REMAINDER] glyphIdArray
+      USHORT[(length - (HERE - START))/2] glyphIdArray // this array runs until the end of the data block
     }
     if(format==6) {
       USHORT length
@@ -528,9 +528,18 @@ Collection post {
   ULONG maxMemType1
 
   if(version==0x00020000) {
-    USHORT numberOfGlyphs  // this should be the same as maxp->numGlyphs
+    USHORT numberOfGlyphs
+    //
+    //  This is commented off because there is no transform for resolving RHS table.values 
+    //
+    //  if(numberOfGlyphs!=maxp.numGlyphs) {
+    //    WARN post.numberOfGlyphs should be equal to maxp.numGlyphs, but this is not the case.
+    //  }
+    //
     USHORT[numberOfGlyphs] glyphNameIndex
-    ASCII[numberNewGlyphs] names
+    if(numberOfGlyphs - 258 > 0) {
+      ASCII[numberOfGlyphs - 258] names
+    }
   }
   if(version==0x00025000) {
     USHORT numberOfGlyphs

@@ -19,11 +19,9 @@ The parser knows a relatively small language:
   record   RESERVED <type>
            | <type> <name>
            | (GLOBAL|LOCAL|IMMEDIATE)? <type> OFFSET <name> (TO <collection name>)? (RELATIVE TO <name>)?
-           | TERMINATE <string>
-           | WARN <string>
 
       Sometimes specs have "reserved" data, which is a byte, short, etc. that
-      basically acts as a spacer. These will be skipped.
+      basically acts as a spacer. These will be read and then discarded
 
       For offsets, we need an indicator that tells us whether it's:
 
@@ -34,14 +32,8 @@ The parser knows a relatively small language:
       Or, if the offset is relative to another record, RELATIVE TO <name of that
       record, within scope>.
 
-      TERMINATE will cause the generated parser to print the termination message, and
-      cancel the parsing process.
-      
-      WARN will cause a message to be generated, without terminating the parsing process.
-
-  conditional   (<name>==<value>)
-                | (<name>!=<value>)
-
+  comparator    any language-supported numerical comparator
+  conditional   (<name> <comparator> <value>)
   conditioned   <conditional> { <collection body> }
 
       conditioned collection blocks let us generate parsers that can deal with
@@ -58,12 +50,17 @@ The parser knows a relatively small language:
       collections for use as "structs" in that collection. Any parent collection
       won't see it.
 
-It has an even smaller set of functions:
+It has an even smaller set of functions and macros:
 
-  VALUE(<name>)    returns the value of the passed record
+  HERE             The current absolute offset in the file
+  START            The absolute offset (in bytes) for the start of this collection
+  VALUE(<name>)    Returns the value of the passed record
+  TERMINATE        Will cause the generated parser to print the termination message, and
+                   cancel the parsing process.
+  WARN             Will cause a message to be generated, without terminating the parsing process.
 
 
-The language also supports /* block comments */ as well as // line comments
+The language also supports /* block comments */ as well as // line comments.
 
 It'll generate JavaScript, for now, because it's a stupidly simple language to generate
 code for. I'm sure any number of other target languages can be added later, because
@@ -73,3 +70,13 @@ This library will simply map the binary data to unpacked (as far as it knows how
 data in memory, but without any traversal logic; it's simply a data unpacker. This
 allows for data->XML or data->JSON unpacking, and probably also the reverse, provided
 the information from the .spec file is kept ... somewhere...
+
+The generated code operates on a data object that looks like this:
+
+  {
+    pointer: <number>   // should default to 0, indicates the current offset in the data
+    marks: []           // an array for pointer save/restores
+    data: arraybuffer   // the data array
+  }
+
+For an example of a .spec file, have a look at "OpenType.spec"
