@@ -62,7 +62,7 @@ xhr.responseType = 'arraybuffer';
 if(xhr.mozResponseType) { xhr.mozResponseType = xhr.responseType; }
 xhr.send(null);
 if(rdebug) window.console.log("setting up TTF font data object");
-var fontDataTTF = {pointer: 0, marks: [], data: new DataView(xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response)};
+var fontDataTTF = {pointer: 0, marks: [], bytecode: new DataView(xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response)};
 
 if(rdebug) window.console.log("getting CFF font file");
 var cff_font = 'LithosPro-Regular.otf';
@@ -72,7 +72,7 @@ xhr.responseType = 'arraybuffer';
 if(xhr.mozResponseType) { xhr.mozResponseType = xhr.responseType; }
 xhr.send(null);
 if(rdebug) window.console.log("setting up CFF font data object");
-var fontDataCFF = {pointer: 0, marks: [], data: new DataView(xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response)};
+var fontDataCFF = {pointer: 0, marks: [], bytecode: new DataView(xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response)};
 
 if(rdebug) window.console.log("creating trigger script");
 var script = document.createElement("script");

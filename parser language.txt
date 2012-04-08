@@ -76,7 +76,7 @@ The generated code operates on a data object that looks like this:
   {
     pointer: <number>   // should default to 0, indicates the current offset in the data
     marks: []           // an array for pointer save/restores
-    data: arraybuffer   // the data array
+    bytecode: arraybuffer   // the data array
   }
 
 For an example of a .spec file, have a look at "OpenType.spec"

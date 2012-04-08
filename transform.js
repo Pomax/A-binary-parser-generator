@@ -217,7 +217,7 @@ function generateParser(specfilecontent) {
                      */
                     "function readBYTE(data) {\n"+
                     "  if(debug) window.console.log('reading BYTE at '+data.pointer+'.');\n"+
-                    "  var val = data.data.getUint8(data.pointer++);\n"+
+                    "  var val = data.bytecode.getUint8(data.pointer++);\n"+
                     "  if(debug) window.console.log('value: '+val+'.');\n"+
                     "  return val;\n"+
                     "}",
@@ -237,7 +237,7 @@ function generateParser(specfilecontent) {
                      */
                     "function readUSHORT(data) {\n"+
                     "  if(debug) window.console.log('reading USHORT at '+data.pointer+'.');\n"+
-                    "  var val  = data.data.getUint16(data.pointer);\n"+
+                    "  var val  = data.bytecode.getUint16(data.pointer);\n"+
                     "  data.pointer += 2;\n"+
                     "  if(debug) window.console.log('value: '+val+'.');\n"+
                     "  return val;\n"+
@@ -248,7 +248,7 @@ function generateParser(specfilecontent) {
                      */
                     "function readSHORT(data) {\n"+
                     "  if(debug) window.console.log('reading SHORT at '+data.pointer+'.');\n"+
-                    "  var val  = data.data.getInt16(data.pointer);\n"+
+                    "  var val  = data.bytecode.getInt16(data.pointer);\n"+
                     "  data.pointer += 2;\n"+
                     "  if(debug) window.console.log('value: '+val+'.');\n"+
                     "  return val;\n"+
@@ -259,7 +259,7 @@ function generateParser(specfilecontent) {
                      */
                     "function readUINT24(data) {\n"+
                     "  if(debug) window.console.log('reading UINT24 at '+data.pointer+'.');\n"+
-                    "  var val  = data.data.getUint16(data.pointer) * 256 + data.data.getUint8(data.pointer+2);\n"+
+                    "  var val  = data.bytecode.getUint16(data.pointer) * 256 + data.bytecode.getUint8(data.pointer+2);\n"+
                     "  data.pointer += 3;\n"+
                     "  if(debug) window.console.log('value: '+val+'.');\n"+
                     "  return val;\n"+
@@ -270,7 +270,7 @@ function generateParser(specfilecontent) {
                      */
                     "function readULONG(data) {\n"+
                     "  if(debug) window.console.log('reading ULONG at '+data.pointer+'.');\n"+
-                    "  var val  = data.data.getUint32(data.pointer);\n"+
+                    "  var val  = data.bytecode.getUint32(data.pointer);\n"+
                     "  data.pointer += 4;\n"+
                     "  if(debug) window.console.log('value: '+val+'.');\n"+
                     "  return val;\n"+
@@ -281,7 +281,7 @@ function generateParser(specfilecontent) {
                      */
                     "function readLONG(data) {\n"+
                     "  if(debug) window.console.log('reading LONG at '+data.pointer+'.');\n"+
-                    "  var val  = data.data.getInt32(data.pointer);\n"+
+                    "  var val  = data.bytecode.getInt32(data.pointer);\n"+
                     "  data.pointer += 4;\n"+
                     "  if(debug) window.console.log('value: '+val+'.');\n"+
                     "  return val;\n"+
