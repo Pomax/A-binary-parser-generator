@@ -300,7 +300,10 @@ function generateParser(specfilecontent) {
                     "  }  // note that IMMEDIATE doesn't require pointer reassignment\n"+
                     "  var f = type;\n"+
                     "  if(typeof type === \"string\") {\n"+
-                    "    f = new Function('data', 'return read'+type.replace(/\\W/,'_')+'(data)');\n"+
+                    "    f = new Function('data', "+
+                    "                     'if(typeof read'+type.replace(/\\W/,'_')+' !== \"undefined\") { "+
+                    "                        return read'+type.replace(/\\W/,'_')+'(data); "+
+                    "                      } else { window.console.log(\"WARNING: spec does not know about ['+type+']\"); return false; }');\n"+
                     "  }\n"+
                     "  var structure = f(data);\n"+
                     "  data.pointer = curptr;\n"+

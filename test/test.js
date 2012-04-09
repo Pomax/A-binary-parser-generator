@@ -5,8 +5,8 @@ var rdebug = true;
 var debug = false;
 
 // ttf and otf test fonts - modify these to match whichever font you're using for testing
-var ttf_font = 'lvnmbd.ttf';
-var cff_font = 'LithosPro-Regular.otf';
+var ttf_font = 'Sansation_Regular.ttf';
+var cff_font = 'StMarie-thin.otf';
 
 /**
  *
@@ -53,7 +53,7 @@ function __showObject(obj, depth) {
 // get specification
 if(rdebug) window.console.log("getting specification file");
 var xhr = new XMLHttpRequest();
-xhr.open('GET', 'OpenType.spec', false);
+xhr.open('GET', '../OpenType.spec', false);
 xhr.send(null);
 var spec = xhr.responseText;
 document.getElementById("specfile").innerHTML = spec.replace(/</g,"&lt;").replace(/>/g,"&gt;");

@@ -10,5 +10,11 @@ A demonstrator is currently up on:
 
 http://pomax.nihongoresources.com/pages/ABinaryParserGenerator/
 
+You can also run the index.html file from 
+the test dir, however, you will have to get
+some of your own fonts to test with, and
+update the test.js file so that the ttf and
+cff font refernces have the right names.
+
 (NOTE: This project depends on jDataView, which
 can be found at https://github.com/vjeux/jDataView)
