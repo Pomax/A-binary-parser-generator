@@ -40,7 +40,7 @@ function __showObject(obj, depth) {
 // get specification
 if(rdebug) window.console.log("getting specification file");
 var xhr = new XMLHttpRequest();
-xhr.open('GET', 'OpenType.spec', false);
+xhr.open('GET', '../OpenType.spec', false);
 xhr.send(null);
 var spec = xhr.responseText;
 document.getElementById("specfile").innerHTML = spec.replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -54,6 +54,27 @@ if(rdebug) window.console.log("showing parser code");
 document.getElementById("codeview").innerHTML = code.replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
 
+/**
+ *
+ */
+function buildDataView(data) {
+  // this only works in Chrome at the moment
+  if(typeof DataView !== "undefined") {
+    return new DataView(data);
+  }
+  
+  // fall back to jDataView (https://github.com/vjeux/jDataView)
+  var dv = new jDataView(data, 0, data.length, false);
+  return {
+    getInt8:   function(offset) { return dv.getInt8(offset, false); },
+    getUint8:  function(offset) { return dv.getUint8(offset, false); },
+    getInt16:  function(offset) { return dv.getInt16(offset, false); },
+    getUint16: function(offset) { return dv.getUint16(offset, false); },
+    getInt32:  function(offset) { return dv.getInt32(offset, false); },
+    getUint32: function(offset) { return dv.getUint32(offset, false); }
+  }
+}
+
 // get a ttf font
 if(rdebug) window.console.log("getting TTF font file");
 var ttf_font = 'lvnmbd.ttf';
@@ -65,7 +86,7 @@ var fontDataTTF = false;
 xhr_ttf.onreadystatechange = function() {
   if(xhr_ttf.readyState==4 && xhr_ttf.status==200) {
     if(rdebug) window.console.log("setting up TTF font data object");
-    fontDataTTF = {pointer: 0, marks: [], bytecode: new DataView(xhr_ttf.mozResponseArrayBuffer || xhr_ttf.mozResponse || xhr_ttf.responseArrayBuffer || xhr_ttf.response)};
+    fontDataTTF = {pointer: 0, marks: [], bytecode: buildDataView(xhr_ttf.mozResponseArrayBuffer || xhr_ttf.mozResponse || xhr_ttf.responseArrayBuffer || xhr_ttf.response)};
   }
 }
 xhr_ttf.send(null);
@@ -81,7 +102,7 @@ var fontDataCFF = false;
 xhr_cff.onreadystatechange = function() {
   if(xhr_cff.readyState==4 && xhr_cff.status==200) {
     if(rdebug) window.console.log("setting up CFF font data object");
-    fontDataCFF = {pointer: 0, marks: [], bytecode: new DataView(xhr_cff.mozResponseArrayBuffer || xhr_cff.mozResponse || xhr_cff.responseArrayBuffer || xhr_cff.response)};
+    fontDataCFF = {pointer: 0, marks: [], bytecode: buildDataView(xhr_cff.mozResponseArrayBuffer || xhr_cff.mozResponse || xhr_cff.responseArrayBuffer || xhr_cff.response)};
   }
 }
 xhr_cff.send(null);

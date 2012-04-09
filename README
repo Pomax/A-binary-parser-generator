@@ -9,3 +9,6 @@ there?"
 A demonstrator is currently up on:
 
 http://pomax.nihongoresources.com/pages/ABinaryParserGenerator/
+
+(NOTE: This project depends on jDataView, which
+can be found at https://github.com/vjeux/jDataView)
