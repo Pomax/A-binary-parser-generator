@@ -40,7 +40,7 @@ function __showObject(obj, depth) {
 // get specification
 if(rdebug) window.console.log("getting specification file");
 var xhr = new XMLHttpRequest();
-xhr.open('GET', '../OpenType.spec', false);
+xhr.open('GET', 'OpenType.spec', false);
 xhr.send(null);
 var spec = xhr.responseText;
 document.getElementById("specfile").innerHTML = spec.replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -58,20 +58,17 @@ document.getElementById("codeview").innerHTML = code.replace(/</g,"&lt;").replac
  *
  */
 function buildDataView(data) {
-  // this only works in Chrome at the moment
-  if(typeof DataView !== "undefined") {
-    return new DataView(data);
-  }
-  
-  // fall back to jDataView (https://github.com/vjeux/jDataView)
-  var dv = new jDataView(data, 0, data.length, false);
+  // rely on jDataView (https://github.com/vjeux/jDataView)
+  // to supply the correct byte reading functions. Make sure
+  // to set it up so that it read Big Endian byte ordering.
+  var reader = new jDataView(data, 0, data.length, false);
   return {
-    getInt8:   function(offset) { return dv.getInt8(offset, false); },
-    getUint8:  function(offset) { return dv.getUint8(offset, false); },
-    getInt16:  function(offset) { return dv.getInt16(offset, false); },
-    getUint16: function(offset) { return dv.getUint16(offset, false); },
-    getInt32:  function(offset) { return dv.getInt32(offset, false); },
-    getUint32: function(offset) { return dv.getUint32(offset, false); }
+    getInt8:   function(offset) { return reader.getInt8(offset,   false); },
+    getUint8:  function(offset) { return reader.getUint8(offset,  false); },
+    getInt16:  function(offset) { return reader.getInt16(offset,  false); },
+    getUint16: function(offset) { return reader.getUint16(offset, false); },
+    getInt32:  function(offset) { return reader.getInt32(offset,  false); },
+    getUint32: function(offset) { return reader.getUint32(offset, false); }
   }
 }
 
