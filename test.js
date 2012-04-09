@@ -53,43 +53,74 @@ var code = generateParser(spec);
 if(rdebug) window.console.log("showing parser code");
 document.getElementById("codeview").innerHTML = code.replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
+
 // get a ttf font
 if(rdebug) window.console.log("getting TTF font file");
 var ttf_font = 'lvnmbd.ttf';
-var xhr = new XMLHttpRequest();
-xhr.open('GET', ttf_font, false);
-xhr.responseType = 'arraybuffer';
-if(xhr.mozResponseType) { xhr.mozResponseType = xhr.responseType; }
-xhr.send(null);
-if(rdebug) window.console.log("setting up TTF font data object");
-var fontDataTTF = {pointer: 0, marks: [], bytecode: new DataView(xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response)};
+var xhr_ttf = new XMLHttpRequest();
+xhr_ttf.open('GET', ttf_font, true);
+xhr_ttf.responseType = 'arraybuffer';
+if(xhr_ttf.mozResponseType) { xhr_ttf.mozResponseType = xhr_ttf.responseType; }
+var fontDataTTF = false;
+xhr_ttf.onreadystatechange = function() {
+  if(xhr_ttf.readyState==4 && xhr_ttf.status==200) {
+    if(rdebug) window.console.log("setting up TTF font data object");
+    fontDataTTF = {pointer: 0, marks: [], bytecode: new DataView(xhr_ttf.mozResponseArrayBuffer || xhr_ttf.mozResponse || xhr_ttf.responseArrayBuffer || xhr_ttf.response)};
+  }
+}
+xhr_ttf.send(null);
 
+// get a cff font
 if(rdebug) window.console.log("getting CFF font file");
 var cff_font = 'LithosPro-Regular.otf';
-xhr = new XMLHttpRequest();
-xhr.open('GET', cff_font, false);
-xhr.responseType = 'arraybuffer';
-if(xhr.mozResponseType) { xhr.mozResponseType = xhr.responseType; }
-xhr.send(null);
-if(rdebug) window.console.log("setting up CFF font data object");
-var fontDataCFF = {pointer: 0, marks: [], bytecode: new DataView(xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response)};
+var xhr_cff = new XMLHttpRequest();
+xhr_cff.open('GET', cff_font, true);
+xhr_cff.responseType = 'arraybuffer';
+if(xhr_cff.mozResponseType) { xhr_cff.mozResponseType = xhr_cff.responseType; }
+var fontDataCFF = false;
+xhr_cff.onreadystatechange = function() {
+  if(xhr_cff.readyState==4 && xhr_cff.status==200) {
+    if(rdebug) window.console.log("setting up CFF font data object");
+    fontDataCFF = {pointer: 0, marks: [], bytecode: new DataView(xhr_cff.mozResponseArrayBuffer || xhr_cff.mozResponse || xhr_cff.responseArrayBuffer || xhr_cff.response)};
+  }
+}
+xhr_cff.send(null);
 
-if(rdebug) window.console.log("creating trigger script");
+
+/**
+ *
+ */
+function tryLoadFonts() {
+  if(fontDataTTF===false || fontDataCFF===false) {
+    if(rdebug) window.console.log('scheduling a 250ms timeout before checking load states.')
+    setTimeout(tryLoadFonts, 250); }
+  else { 
+    if(rdebug) window.console.log('scheduling a 1000ms timeout before parse run.')  
+    setTimeout(loadFonts, 1000); }
+}
+
+/**
+ *
+ */
+function loadFonts() {
+  // loading done - parse TTF
+  fontDataTTF.pointer = 0;
+  if(rdebug) window.console.log('starting TTF parse run...')
+  readSFNT(fontDataTTF); 
+  if(rdebug) window.console.log('completed, serializing to string')
+  showObject(ttf_font, document.getElementById('fontobj_ttf'), getInstance('SFNT'), 0);
+
+  // parse CFF
+  fontDataCFF.pointer = 0;
+  if(rdebug) window.console.log('starting CFF parse run...')
+  readSFNT(fontDataCFF); 
+  if(rdebug) window.console.log('completed, serializing to string')
+  showObject(cff_font, document.getElementById('fontobj_cff'), getInstance('SFNT'), 0);
+}
+
+// kickstart
 var script = document.createElement("script");
 script.type="text/javascript";
-script.innerHTML = code + "\n" + 
-                   "if(rdebug) window.console.log('scheduling a 1000ms timeout before parse run.')\n" +
-                   "setTimeout(function(){\n" +
-                   "  fontDataTTF.pointer = 0;\n" +
-                   "  if(rdebug) window.console.log('starting TTF parse run...')\n" +
-                   "  readSFNT(fontDataTTF);\n" + 
-                   "  if(rdebug) window.console.log('completed, serializing to string')\n" +
-                   "  showObject('"+ttf_font+"', document.getElementById('fontobj_ttf'), getInstance('SFNT'), 0);\n"+
-                   "  fontDataCFF.pointer = 0;\n" +
-                   "  if(rdebug) window.console.log('starting CFF parse run...')\n" +
-                   "  readSFNT(fontDataCFF);\n" + 
-                   "  if(rdebug) window.console.log('completed, serializing to string')\n" +
-                   "  showObject('"+cff_font+"', document.getElementById('fontobj_cff'), getInstance('SFNT'), 0);\n"+
-                   "}, 1000);";
-
+script.innerHTML = code;
 document.head.appendChild(script);
+tryLoadFonts();
