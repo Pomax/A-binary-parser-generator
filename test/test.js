@@ -4,17 +4,30 @@ var rdebug = true;
 // font debugging
 var debug = false;
 
+// ttf and otf test fonts - modify these to match whichever font you're using for testing
+var ttf_font = 'lvnmbd.ttf';
+var cff_font = 'LithosPro-Regular.otf';
+
+/**
+ *
+ */
 function spacer(n) {
   var r = "";
   while(n-->0) { r += "&nbsp;"; }
   return r;
 }
 
+/**
+ *
+ */
 function showObject(title, htmlelement, obj) {
   var content = __showObject(obj, 0);
   htmlelement.innerHTML = "<b style='display: inline-block; margin-bottom: 1em; text-decoration: underline;'>"+title.toUpperCase()+"</b>\n" + content;
 }
 
+/**
+ *
+ */
 function __showObject(obj, depth) {
   var attr, act, string = "";
   for(attr in obj) {
@@ -74,7 +87,6 @@ function buildDataView(data) {
 
 // get a ttf font
 if(rdebug) window.console.log("getting TTF font file");
-var ttf_font = 'lvnmbd.ttf';
 var xhr_ttf = new XMLHttpRequest();
 xhr_ttf.open('GET', ttf_font, true);
 xhr_ttf.responseType = 'arraybuffer';
@@ -90,7 +102,6 @@ xhr_ttf.send(null);
 
 // get a cff font
 if(rdebug) window.console.log("getting CFF font file");
-var cff_font = 'LithosPro-Regular.otf';
 var xhr_cff = new XMLHttpRequest();
 xhr_cff.open('GET', cff_font, true);
 xhr_cff.responseType = 'arraybuffer';
