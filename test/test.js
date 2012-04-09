@@ -9,7 +9,7 @@ var ttf_font = 'Sansation_Regular.ttf';
 var cff_font = 'StMarie-thin.otf';
 
 /**
- *
+ * helper function to showObject
  */
 function spacer(n) {
   var r = "";
@@ -18,7 +18,9 @@ function spacer(n) {
 }
 
 /**
- *
+ * Show what is inside an abitrary JS object,
+ * by writing it's propertly/values to a specific
+ * HTML element like <p> or <pre>
  */
 function showObject(title, htmlelement, obj) {
   var content = __showObject(obj, 0);
@@ -26,7 +28,9 @@ function showObject(title, htmlelement, obj) {
 }
 
 /**
- *
+ * Wrapped by showObject, this is the function
+ * that actually does the recursive string building
+ * to show what's inside of a JS object.
  */
 function __showObject(obj, depth) {
   var attr, act, string = "";
@@ -50,7 +54,9 @@ function __showObject(obj, depth) {
   return string;
 }
 
-// get specification
+// ========== RELEVANT CODE STARTS HERE =============
+
+// STEP 1: get our OpenType specification file
 if(rdebug) window.console.log("getting specification file");
 var xhr = new XMLHttpRequest();
 xhr.open('GET', '../OpenType.spec', false);
@@ -58,17 +64,20 @@ xhr.send(null);
 var spec = xhr.responseText;
 document.getElementById("specfile").innerHTML = spec.replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-// generate parser
+// STEP 2: generate a JS parser, as source code, from this spec
 if(rdebug) window.console.log("generating parser");
 var code = generateParser(spec);
 
-// show parser code
+// show the source code on the page
 if(rdebug) window.console.log("showing parser code");
 document.getElementById("codeview").innerHTML = code.replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
 
 /**
- *
+ * This function wraps a byte stream with an object that
+ * gives use byte sequence reading functions. This is particulary
+ * important because our files are always big endian, but not every
+ * system will load them as such!
  */
 function buildDataView(data) {
   // rely on jDataView (https://github.com/vjeux/jDataView)
@@ -85,7 +94,7 @@ function buildDataView(data) {
   }
 }
 
-// get a ttf font
+// STEP 3a: get a ttf font
 if(rdebug) window.console.log("getting TTF font file");
 var xhr_ttf = new XMLHttpRequest();
 xhr_ttf.open('GET', ttf_font, true);
@@ -100,7 +109,7 @@ xhr_ttf.onreadystatechange = function() {
 }
 xhr_ttf.send(null);
 
-// get a cff font
+// STEP 3b: get a cff font
 if(rdebug) window.console.log("getting CFF font file");
 var xhr_cff = new XMLHttpRequest();
 xhr_cff.open('GET', cff_font, true);
@@ -117,7 +126,8 @@ xhr_cff.send(null);
 
 
 /**
- *
+ * This function waits for both the TTF and CFF font to finish
+ * loading before it will let us continue with our work.
  */
 function tryLoadFonts() {
   if(fontDataTTF===false || fontDataCFF===false) {
@@ -129,25 +139,35 @@ function tryLoadFonts() {
 }
 
 /**
- *
+ * When both fonts have been loaded, we parse them, to see what they're made of!
  */
 function loadFonts() {
-  // loading done - parse TTF
+  var fontObject;
+  
+  // STEP 4a: parse TTF, then print the object that is generated
+  // to the page in a readable fashion.
   fontDataTTF.pointer = 0;
-  if(rdebug) window.console.log('starting TTF parse run...')
-  readSFNT(fontDataTTF); 
-  if(rdebug) window.console.log('completed, serializing to string')
-  showObject(ttf_font, document.getElementById('fontobj_ttf'), getInstance('SFNT'), 0);
+  if(rdebug) window.console.log('starting TTF parse run...');
+  fontObject = readSFNT(fontDataTTF); 
+  if(rdebug) window.console.log('completed, serializing to string');
+  showObject(ttf_font, document.getElementById('fontobj_ttf'), fontObject, 0);
 
-  // parse CFF
+  // STEP 4b: parse CFF. While we could do the same fontObject = readSFNT, we can
+  // also use the "get last bound instance for ...." function:
   fontDataCFF.pointer = 0;
-  if(rdebug) window.console.log('starting CFF parse run...')
+  if(rdebug) window.console.log('starting CFF parse run...');
   readSFNT(fontDataCFF); 
-  if(rdebug) window.console.log('completed, serializing to string')
-  showObject(cff_font, document.getElementById('fontobj_cff'), getInstance('SFNT'), 0);
+  fontObject = getInstance("SFNT");
+  if(rdebug) window.console.log('completed, serializing to string');
+  showObject(cff_font, document.getElementById('fontobj_cff'), fontObject, 0);
 }
 
-// kickstart
+
+// And finally, in order to kickstart the whole
+// loading process, we need to make sure to inject 
+// our JS font parser that we generated as a new
+// script element, and then trigger the "wait for
+// fonts to load" function.
 var script = document.createElement("script");
 script.type="text/javascript";
 script.innerHTML = code;
