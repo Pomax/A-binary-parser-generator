@@ -78,7 +78,7 @@ Collection cmap {
       USHORT searchRange
       USHORT entrySelector
       USHORT rangeShift
-      USHORT[segCountX2] endCount // the table encodes segCount as twice the value it really is...
+      USHORT[segCountX2 / 2] endCount // the table encodes segCount as twice the value it really is...
       RESERVED USHORT
       USHORT[segCount] startCount
       SHORT[segCount] idDelta
