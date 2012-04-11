@@ -611,12 +611,112 @@ Collection JSTF {}
 
 **/
 
-Collection DSIG {}
-Collection gasp {}
-Collection hdmx {}
-Collection kern {}
+// http://www.microsoft.com/typography/otspec/dsig.htm
+Collection DSIG {
+  // "private" collections
+  Collection _signature {
+    ULONG	ulFormat      	        // format of the signature
+    ULONG	ulLength	              // Length of signature in bytes
+    ULONG	ulOffset  	            // Offset to the signature block from the beginning of the table
+  }
+  
+  Collection _signatureBlock {
+    USHORT	usReserved1	          // Reserved for later; use 0 for now
+    USHORT	usReserved2	          // Reserved for later; use 0 for now
+    ULONG	cbSignature	            // Length (in bytes) of the PKCS#7 packet in pbSignature
+    BYTE[cbSignature]	bSignature	// PKCS#7 packet
+  }
+
+  ULONG	  ulVersion
+  USHORT	usNumSigs
+  USHORT	usFlag
+  _signature[usNumSigs] signatures
+  _signatureBlock[usNumSigs] signatureBlocks
+}
+
+
+// http://www.microsoft.com/typography/otspec/gasp.htm
+Collection gasp {
+
+  // "private" collection
+  Collection __gaspRange {
+    USHORT rangeMaxPPEM	      // Upper limit of range, in PPEM
+    USHORT rangeGaspBehavior	// Flags describing desired rasterizer behavior.
+  }
+
+  USHORT version
+  USHORT numRanges
+  _gaspRange[numRanges] gaspRange	// Sorted by ppem
+}
+
+
+// http://www.microsoft.com/typography/otspec/hdmx.htm
+Collection hdmx {
+  // "private" collection
+  Collection _DeviceRecord {
+    BYTE pixelSize
+    BYTE maxWidth
+    BYTE[maxp.numGlyphs] widths 
+  }
+  
+  USHORT version
+  SHORT	numRecords
+  LONG sizeDeviceRecord
+  DeviceRecord[numRecords] records
+}
+
+
+// http://www.microsoft.com/typography/otspec/kern.htm (mostly superceded by GPOS)
+Collection kern {
+
+  // "private" collections
+  Collection _kerningPair {
+    USHORT left  // The glyph index for the left-hand glyph in the kerning pair.
+    USHORT right // The glyph index for the right-hand glyph in the kerning pair.
+    SHORT value  // officially: FWord
+  }
+
+  Collection _table {
+    USHORT version
+    USHORT length
+
+    // 16 bit coverage flags, where bits 8-15 actually encode the format as BYTE
+    BYTE coverage // horizontal, minimum, cross-stream, override (3), reserved
+    BYTE format   // read separately
+    if(format==0) {
+      USHORT nPairs
+      USHORT searchRange
+      USHORT entrySelector
+      USHORT rangeShift
+      _kerningPair[nPairs] kerningPairs
+    }
+    if(format==2) {
+      Collection _classTable {
+        USHORT firstGlyph // First glyph in class range.
+        USHORT nGlyphs	
+        USHORT[nGlyphs] glyphs
+      }
+      Collection _tableValues {
+        SHORT[kern.leftClassTable.nGlyphs * kern.rightClassTable.nGlyphs] values
+      }
+      USHORT rowWidth	                                     // The width, in bytes, of a row in the table.
+      LOCAL USHORT OFFSET leftClassTable TO _classTable    // Offset from beginning of this subtable to left-hand class table.
+      LOCAL USHORT OFFSET rightClassTable TO _classTable   // Offset from beginning of this subtable to right-hand class table.
+      LOCAL USHORT OFFSET array TO _tableValues            // Offset from beginning of this subtable to the start of the kerning array.
+    }
+  }
+
+  USHORT version
+  USHORT nTables	
+  _table[nTables] tables
+}
+
 Collection LTSH {}
+
 Collection PCLT {}
+
 Collection VDMX {}
+
 Collection vhea {}
+
 Collection vmtx {}

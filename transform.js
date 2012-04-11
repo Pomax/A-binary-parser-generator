@@ -153,16 +153,16 @@ function generateParser(specfilecontent) {
   //
   // NOTE: the remote location may not have been read in yet, so this read
   //       may be delayed to 'some later moment in time'.
-  search = "([ \\t]*)([\\w_]+)\\[(\\w+)\\.(\\w+) ([+-]) (\\w+)\\.(\\w+)\\]\\s*(\\w+)";
-  replace = "$1struct.$8 = [];\n"+
-            "$1if(getInstance(\"$3\") && getInstance(\"$6\")){\n"+
+  search = "([ \\t]*)([\\w_]+)\\[(\\w+)((\\.\\w+)+)?\\s+([+\\-*])\\s+(\\w+)((\\.\\w+)+)?\\]\\s*(\\w+)";
+  replace = "$1struct.$10 = [];\n"+
+            "$1if(getInstance(\"$3\") && getInstance(\"$7\")){\n"+
             "$1  (function(data, arr, readcount) {\n"+
             "$1    while(readcount-->0) {\n"+
             "$1      arr.push(read$2(data));\n"+
             "$1    }\n"+
-            "$1  }(data, struct.$8, getInstance(\"$3\").$4 $5 getInstance(\"$6\").$7));"+
+            "$1  }(data, struct.$10, getInstance(\"$3\")$4 $6 getInstance(\"$7\")$8));"+
             "$1} else {\n"+
-            "$1  delayArithmeticArrayRead(data, data.pointer, read$2, struct, \"$8\", [\"$3\", \"$6\"], [\"$4\",\"$7\"], \"$5\")\n"+
+            "$1  delayArithmeticArrayRead(data, data.pointer, read$2, struct, \"$10\", [\"$3\", \"$7\"], [\"$4\",\"$8\"], \"$6\")\n"+
             "$1}";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
@@ -301,9 +301,9 @@ function generateParser(specfilecontent) {
                     "  var f = type;\n"+
                     "  if(typeof type === \"string\") {\n"+
                     "    f = new Function('data', "+
-                    "                     'if(typeof read'+type.replace(/\\W/,'_')+' !== \"undefined\") { "+
-                    "                        return read'+type.replace(/\\W/,'_')+'(data); "+
-                    "                      } else { window.console.log(\"WARNING: spec does not know about ['+type+']\"); return false; }');\n"+
+                                         "'if(typeof read'+type.replace(/\\W/,'_')+' !== \"undefined\") { "+
+                                            "return read'+type.replace(/\\W/,'_')+'(data); "+
+                                          "} else { window.console.log(\"WARNING: spec does not know about ['+type+']\"); return false; }');\n"+
                     "  }\n"+
                     "  var structure = f(data);\n"+
                     "  data.pointer = curptr;\n"+
@@ -392,13 +392,25 @@ function generateParser(specfilecontent) {
                      * determine the array count for an array that uses arithmetic in their count field
                      */
                     "function getArrayCount(tableNames, tablePropertyNames, operator) {\n"+
-                    "  var i, len = tableNames.length, tbl, prop, values = []\n"+
+                    "  var i, len = tableNames.length, tbl, prop, terms, values = []\n"+
                     "  for(i=0; i<len; i++) {\n"+
-                    "    tbl = getInstance(tableNames[i]);\n"+
+                    "    obj  = getInstance(tableNames[i]);\n"+
                     "    prop = tablePropertyNames[i];\n"+
-                    "    if(tbl && tbl[prop]) {\n"+
-                    "      values.push(tbl[prop]);"+
-                    "    } else { return false; }\n"+
+                    
+                    // ensure that something.prop1.prop2.prop3 etc. will resolve correctly
+                    "    terms = prop.split('.');\n"+  // why the hell does this not work in Chrome? prop has a value ".SomeString", but split(".") gives []
+                    "    if(terms[0]==='') {\n"+
+                    "      terms.splice(0,1);\n"+
+                    "    }\n"+
+                    
+                    // cycle thought obj[prop1][prop2][prop3][...] until we reach the value
+                    "    while(obj && terms.length>0 && obj[terms[0]]) {\n"+
+                    "      obj = obj[terms[0]];\n"+
+                    "      terms.splice(0,1);\n"+
+                    "    }\n"+
+                    
+                    // if prop[] has length 0, we resolved to a value.
+                    "    if(terms.length === 0) { values.push(obj); } else { return false; }\n"+
                     "    var f = new Function('return '+values.join(operator)+';')\n"+
                     "    return f();\n"+
                     "  }\n"+
