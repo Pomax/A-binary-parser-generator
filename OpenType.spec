@@ -559,11 +559,73 @@ Collection post {
 
 **/
 
-Collection cvt_ {}
-Collection fpgm {}
-Collection glyf {}
-Collection loca {}
-Collection prep {}
+
+// http://www.microsoft.com/typography/otspec/cvt.htm
+Collection cvt_ {
+  // FWORD[n] List of n values referenceable by instructions. n is the number of FWORD items that fit in the size of the table.
+  
+  /**
+    Can this be done easily? how do we access the table record in the font header to find out the length of this table?
+  **/
+}
+
+
+// http://www.microsoft.com/typography/otspec/fpgm.htm
+Collection fpgm {
+  // BYTE[n] Instructions // n is the number of BYTE items that fit in the size of the table.
+  
+  /**
+    Can this be done easily? how do we access the table record in the font header to find out the length of this table?
+  **/
+}
+
+
+// http://www.microsoft.com/typography/otspec/glyf.htm
+Collection glyf {
+/*
+  Collection _glyfHeader {
+    SHORT numberOfContours
+    SHORT xMin
+    SHORT yMin
+    SHORT xMax
+    SHORT yMax
+    if(numberOfContours >= 0) {
+      USHORT[numberOfContours] endPtsOfContours
+      USHORT instructionLength
+      BYTE[instructionLength] instructions
+      BYTE	flags[n]
+      BYTE or SHORT	xCoordinates[ ]	First coordinates relative to (0,0); others are relative to previous point.
+      BYTE or SHORT	yCoordinates[ ]	
+    }
+    if(numberOfContours < 0) {
+    } 
+  }
+  
+  // we probably do not want to read all this data in immediately
+  // _glyfHeader[maxp.numGlyphs] glyphs
+*/
+}
+
+
+// http://www.microsoft.com/typography/otspec/loca.htm
+Collection loca {
+  if(head.indexToLocFormat == 0) {
+    USHORT[maxp.numGlyphs+1] offsets
+  }
+  if(head.indexToLocFormat == 1) {
+    ULONG[maxp.numGlyphs+1] offsets
+  }
+}
+
+
+// http://www.microsoft.com/typography/otspec/prep.htm
+Collection prep {
+  //BYTE[n] Set of instructions executed whenever point size or font or transformation change. n is the number of BYTE items that fit in the size of the table.
+  
+  /**
+    Can this be done easily? how do we access the table record in the font header to find out the length of this table?
+  **/
+}
 
 /**
 
@@ -639,7 +701,7 @@ Collection DSIG {
 Collection gasp {
 
   // "private" collection
-  Collection __gaspRange {
+  Collection _gaspRange {
     USHORT rangeMaxPPEM	      // Upper limit of range, in PPEM
     USHORT rangeGaspBehavior	// Flags describing desired rasterizer behavior.
   }
@@ -662,7 +724,7 @@ Collection hdmx {
   USHORT version
   SHORT	numRecords
   LONG sizeDeviceRecord
-  DeviceRecord[numRecords] records
+  _DeviceRecord[numRecords] records
 }
 
 
@@ -711,12 +773,103 @@ Collection kern {
   _table[nTables] tables
 }
 
-Collection LTSH {}
 
-Collection PCLT {}
+// http://www.microsoft.com/typography/otspec/ltsh.htm
+Collection LTSH {
+  USHORT version
+  USHORT numGlyphs
+  BYTE[numGlyphs] yPels
+}
 
-Collection VDMX {}
 
-Collection vhea {}
+// http://www.microsoft.com/typography/otspec/pclt.htm
+// NOTE: The 'PCLT' table is strongly discouraged for ttf
+Collection PCLT {
+  USHORT Version
+  ULONG FontNumber
+  USHORT Pitch
+  USHORT xHeight
+  USHORT Style
+  USHORT TypeFamily
+  USHORT CapHeight
+  USHORT SymbolSet
+  ASCII[16] Typeface
+  ASCII[8] CharacterComplement
+  ASCII[6] FileName
+  ASCII StrokeWeight
+  ASCII WidthType
+  BYTE SerifStyle
+  RESERVED BYTE
+}
 
-Collection vmtx {}
+
+// http://www.microsoft.com/typography/otspec/vdmx.htm
+Collection VDMX {
+  Collection _ratio {
+    BYTE bCharSet
+    BYTE xRatio
+    BYTE yStartRatio
+    BYTE yEndRatio
+  }
+  
+  Collection _vTable {
+    USHORT yPelHeight
+    SHORT yMax
+    SHORT yMin
+  }
+  
+  Collection _vdmx {
+    USHORT recs
+    BYTE startsz
+    BYTE endsz
+    _vTable[recs] entry
+  }
+  
+  USHORT version 
+  USHORT numRecs
+  USHORT numRatios
+  _ratio[numRatios] ratRange
+  USHORT[numRatios] offset   // Offset from start of this table to the VDMX group for this ratio range.
+  _vdmx[numRecs] groups
+}
+
+
+// http://www.microsoft.com/typography/otspec/vhea.htm
+Collection vhea {
+  USHORT version
+  if(version == 0x00010000) {
+    SHORT ascent
+    SHORT descent
+    SHORT lineGap
+  }
+  if(version == 0x00011000) {
+    SHORT vertTypoAscender
+    SHORT vertTypoDescender
+    SHORT vertTypoLineGap
+  }
+  SHORT advanceHeightMax
+  SHORT minTopSideBearing
+  SHORT minBottomSideBearing
+  SHORT yMaxExtent
+  SHORT caretSlopeRise
+  SHORT caretSlopeRun
+  SHORT caretOffset
+  RESERVED SHORT
+  RESERVED SHORT
+  RESERVED SHORT
+  RESERVED SHORT
+  SHORT metricDataFormat
+  USHORT numOfLongVerMetrics
+}
+
+
+// http://www.microsoft.com/typography/otspec/vmtx.htm
+Collection vmtx {
+  Collection _vMetric {
+    USHORT advanceHeight
+    SHORT topSideBearing
+  }
+
+  _vMetric[vhea.numOfLongVerMetrics] vMetrics
+  SHORT[maxp.nuGlyphs - vhea.numOfLongVerMetrics] topSideBearing
+}
