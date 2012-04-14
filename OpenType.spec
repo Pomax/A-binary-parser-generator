@@ -6,7 +6,7 @@
 
 **/
 
-Collection SFNT {
+Defining Collection SFNT {
 
   // "private" collection
   Collection _tableRecord {
@@ -66,7 +66,7 @@ Collection cmap {
       USHORT length
       USHORT language
       USHORT[256] subHeaderKeys
-      
+
       /* What is the value for these lengths? I don't understand the description in the official specification */
       _subHeaders[0] subHeaders // Variable-length array of subHeader structures.
       USHORT[0] glyphIndexArray // Variable-length array containing subarrays used for mapping the low byte of 2-byte characters.
@@ -83,7 +83,13 @@ Collection cmap {
       USHORT[segCount] startCount
       SHORT[segCount] idDelta
       USHORT[segCount] idRangeOffset
-      USHORT[(length - (HERE - START))/2] glyphIdArray // this array runs until the end of the data block
+
+      // FIXME: ideally I don't want to see struct.length
+      //        in the following array. It's in there right
+      //        now as temporary solution to the problem
+      //        of not having an AST =)
+      //
+      USHORT[(struct.length - (HERE - START))/2] glyphIdArray // this array runs until the end of the data block
     }
     if(format==6) {
       USHORT length
@@ -320,8 +326,8 @@ Collection name {
     USHORT langTagCount
     _langTagRecord[langTagCount] langTagRecords
   }
-
   // Start of storage area. Not decided on how to do the referencing here yet...
+  //  ASCII[...length - (HERE - START)...] stringStorage
 }
 
 /**
@@ -530,7 +536,7 @@ Collection post {
   if(version==0x00020000) {
     USHORT numberOfGlyphs
     //
-    //  This is commented off because there is no transform for resolving RHS table.values 
+    //  This is commented off because there is no transform for resolving RHS table.values
     //
     //  if(numberOfGlyphs!=maxp.numGlyphs) {
     //    WARN post.numberOfGlyphs should be equal to maxp.numGlyphs, but this is not the case.
@@ -563,7 +569,7 @@ Collection post {
 // http://www.microsoft.com/typography/otspec/cvt.htm
 Collection cvt_ {
   // FWORD[n] List of n values referenceable by instructions. n is the number of FWORD items that fit in the size of the table.
-  
+
   /**
     Can this be done easily? how do we access the table record in the font header to find out the length of this table?
   **/
@@ -573,7 +579,7 @@ Collection cvt_ {
 // http://www.microsoft.com/typography/otspec/fpgm.htm
 Collection fpgm {
   // BYTE[n] Instructions // n is the number of BYTE items that fit in the size of the table.
-  
+
   /**
     Can this be done easily? how do we access the table record in the font header to find out the length of this table?
   **/
@@ -595,12 +601,12 @@ Collection glyf {
       BYTE[instructionLength] instructions
       BYTE	flags[n]
       BYTE or SHORT	xCoordinates[ ]	First coordinates relative to (0,0); others are relative to previous point.
-      BYTE or SHORT	yCoordinates[ ]	
+      BYTE or SHORT	yCoordinates[ ]
     }
     if(numberOfContours < 0) {
-    } 
+    }
   }
-  
+
   // we probably do not want to read all this data in immediately
   // _glyfHeader[maxp.numGlyphs] glyphs
 */
@@ -621,7 +627,7 @@ Collection loca {
 // http://www.microsoft.com/typography/otspec/prep.htm
 Collection prep {
   //BYTE[n] Set of instructions executed whenever point size or font or transformation change. n is the number of BYTE items that fit in the size of the table.
-  
+
   /**
     Can this be done easily? how do we access the table record in the font header to find out the length of this table?
   **/
@@ -681,7 +687,7 @@ Collection DSIG {
     ULONG	ulLength	              // Length of signature in bytes
     ULONG	ulOffset  	            // Offset to the signature block from the beginning of the table
   }
-  
+
   Collection _signatureBlock {
     USHORT	usReserved1	          // Reserved for later; use 0 for now
     USHORT	usReserved2	          // Reserved for later; use 0 for now
@@ -718,9 +724,9 @@ Collection hdmx {
   Collection _DeviceRecord {
     BYTE pixelSize
     BYTE maxWidth
-    BYTE[maxp.numGlyphs] widths 
+    BYTE[maxp.numGlyphs] widths
   }
-  
+
   USHORT version
   SHORT	numRecords
   LONG sizeDeviceRecord
@@ -755,7 +761,7 @@ Collection kern {
     if(format==2) {
       Collection _classTable {
         USHORT firstGlyph // First glyph in class range.
-        USHORT nGlyphs	
+        USHORT nGlyphs
         USHORT[nGlyphs] glyphs
       }
       Collection _tableValues {
@@ -769,7 +775,7 @@ Collection kern {
   }
 
   USHORT version
-  USHORT nTables	
+  USHORT nTables
   _table[nTables] tables
 }
 
@@ -811,21 +817,21 @@ Collection VDMX {
     BYTE yStartRatio
     BYTE yEndRatio
   }
-  
+
   Collection _vTable {
     USHORT yPelHeight
     SHORT yMax
     SHORT yMin
   }
-  
+
   Collection _vdmx {
     USHORT recs
     BYTE startsz
     BYTE endsz
     _vTable[recs] entry
   }
-  
-  USHORT version 
+
+  USHORT version
   USHORT numRecs
   USHORT numRatios
   _ratio[numRatios] ratRange

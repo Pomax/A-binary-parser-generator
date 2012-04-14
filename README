@@ -1,20 +1,20 @@
-A tool for generating binary data parsers,
-based on a spec file that tells us what the
-data layout is.
+A tool for generating binary data parsers, based on
+a spec file that tells us what the data layout is.
 
-Because "why on earth do I have to write a
-parser from scratch when the spec is right
-there?"
+Because "why on earth do I have to write a parser
+from scratch when the spec is right there?"
 
 A demonstrator is currently up on:
 
 http://pomax.nihongoresources.com/pages/ABinaryParserGenerator/
 
-You can also run the index.html file from 
-the test dir, however, you will have to get
-some of your own fonts to test with, and
-update the test.js file so that the ttf and
-cff font refernces have the right names.
+You can also run the index.html file from the test
+dir, however, you will have to get some of your own
+fonts to test with, and update the test.js file so
+that the ttf and cff font refernces have the right
+names.
 
 (NOTE: This project depends on jDataView, which
 can be found at https://github.com/vjeux/jDataView)
+
+See the comments in transform.js for more info.

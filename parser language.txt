@@ -4,6 +4,21 @@ The parser knows a relatively small language:
   name     <string>
 
   value    An integer number
+           | <type>.<name>
+           | <value> [+-*] <value>
+           | HERE
+           | START
+           | REMAINDER
+
+      The value HERE represents the current absolute offset in the file.
+
+      The value START represents the absolute offset (in bytes) of the
+      start of the collection it is used in.
+
+      The value REMAINDER represents the unknown quantity that takes
+      up the rest of the data in the datafile (GLOBAL) or collection (LOCAL)
+      as of this point in the file. It can be used in arrays to indicate
+      "as many as fit the rest of the file or collection".
 
   type     BYTE               8 bit value
            | ASCII            8 bit ascii value (expressly not called a 'char')
@@ -14,6 +29,18 @@ The parser knows a relatively small language:
            | ULONG            32 bit unsigned integer
            | <type>[<value>]  array notation
            | <collection name>  custom type (think "struct")
+           | COLLECTION<<name>
+
+      The COLLECTION<<name>> type indicates a block of data that conforms
+      to the collection indicated by the value of <name>. For instance:
+
+        ASCII[4] name
+        COLLECTION<name> ihdr
+
+      marks the ihdr record as being of a type indicated by the value of "name";
+      if name is "IHDR" then ihdr will be a data block that should be interpreted
+      using the Collection IHDR. This allows for specifications in which blocks
+      are self-descriptive.
 
 
   record   RESERVED <type>
@@ -40,7 +67,12 @@ The parser knows a relatively small language:
       multiple versions of data blocks (since specs tend to change over the years).
 
   collection name: <name>
-  collection identifier: Collection <collection name>
+  collection identifier: [Defining] Collection <collection name>
+
+      There can only be one collection marked "Defining". This is the
+      collection that is treated as the master collection representing
+      the start of the binary data file, and its parse function will be
+      bound to the Parser.parse(data) function for starting a parse run.
 
   collection: <collection identifier> { <collection body> }
 
@@ -52,8 +84,6 @@ The parser knows a relatively small language:
 
 It has an even smaller set of functions and macros:
 
-  HERE             The current absolute offset in the file
-  START            The absolute offset (in bytes) for the start of this collection
   VALUE(<name>)    Returns the value of the passed record
   TERMINATE        Will cause the generated parser to print the termination message, and
                    cancel the parsing process.
