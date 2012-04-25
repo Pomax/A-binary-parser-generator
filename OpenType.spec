@@ -877,5 +877,5 @@ Collection vmtx {
   }
 
   _vMetric[vhea.numOfLongVerMetrics] vMetrics
-  SHORT[maxp.nuGlyphs - vhea.numOfLongVerMetrics] topSideBearing
+  SHORT[maxp.numGlyphs - vhea.numOfLongVerMetrics] topSideBearing
 }
