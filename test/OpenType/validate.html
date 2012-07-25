@@ -15,6 +15,7 @@
         padding-bottom: 1em;
         padding-right: 1em;
         background-color: rgba(230, 175, 0, 0.05);
+        border: 1px solid grey;
       }
       .no-details details:before {
         content: "▷ ";
@@ -26,19 +27,41 @@
       .no-details details.open:before {
         content: "▽ ";
       }
+      #holder {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 300px;
+        border: 1px solid grey;
+        background-color: rgba(0,0,255,0.2);
+        text-align: center;
+      }
+      #holder.hover {
+        background-color: rgba(0,255,0,0.2);
+      }
     </style>
   </head>
 
   <body>
     <pre id="data_obj">loading...</pre>
+    <div id="holder">Drop your font here...</div>
   </body>
 
   <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
   <script type="text/javascript" src="https://raw.github.com/mathiasbynens/jquery-details/master/jquery.details.min.js"></script>
 
+<!--
   <script type="text/javascript" src="validate.js"></script>
+-->
+  <script type="text/javascript" src="../../transform.js"></script>
+
   <script type="text/javascript" src="../../jDataView.js"></script>
   <script type="text/javascript" src="../../buildDataView.js"></script>
   <script type="text/javascript" src="showObject.js"></script>
+
+<!--
   <script type="text/javascript" src="test.js"></script>
+-->
+  <script type="text/javascript" src="testFromFile.js"></script>
+
 </html>

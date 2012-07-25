@@ -28,10 +28,9 @@ function showObject(title, htmlelement, obj) {
 function __showObject(obj, depth) {
   var attr, act, string = "";
   for(attr in obj) {
-    if(attr === "__proto__") continue;
-    if(attr === "__pointer") continue;
-    if(attr === "__blocklength") continue;
-    if(attr === "__typeName") continue;
+    // hide supposedly hidden attributes
+    if(attr.substring(0,2) === "__") continue;
+    // display everything else
     act = obj[attr];
     if(act instanceof Array) {
       string += spacer(depth) + "[" + attr + "]" + ": <details><summary>[Array("+act.length+")]</summary><div>";
