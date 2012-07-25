@@ -3,14 +3,42 @@
   <head>
     <meta charset="utf-8">
     <title>A Binary Data Parser Generator</title>
+    <style>
+      details {
+        display: inline-block;
+        vertical-align: top;
+      }
+      details summary {
+        cursor: pointer;
+      }
+      details div {
+        padding-bottom: 1em;
+        padding-right: 1em;
+        background-color: rgba(230, 175, 0, 0.05);
+      }
+      .no-details details:before {
+        content: "▷ ";
+        color: #C14;
+        position: relative;
+        top: 2px;
+        left: 4px;
+      }
+      .no-details details.open:before {
+        content: "▽ ";
+      }
+    </style>
   </head>
 
   <body>
     <pre id="data_obj">loading...</pre>
   </body>
 
+  <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+  <script type="text/javascript" src="https://raw.github.com/mathiasbynens/jquery-details/master/jquery.details.min.js"></script>
+
   <script type="text/javascript" src="validate.js"></script>
   <script type="text/javascript" src="../../jDataView.js"></script>
   <script type="text/javascript" src="../../buildDataView.js"></script>
+  <script type="text/javascript" src="showObject.js"></script>
   <script type="text/javascript" src="test.js"></script>
 </html>

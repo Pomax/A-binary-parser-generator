@@ -1,53 +1,53 @@
 // font debugging
 var debug = false;
-var xhr_file = 'myfont.ttf';
+var xhr_file = 'UbuntuMono-R.ttf';
 var filetype = "TTF OpenType";
 
-/**
- * helper function to showObject
- */
-function spacer(n) {
-  var r = "";
-  while(n-->0) { r += "&nbsp;"; }
-  return r;
-}
+///**
+// * helper function to showObject
+// */
+//function spacer(n) {
+//  var r = "";
+//  while(n-->0) { r += "&nbsp;"; }
+//  return r;
+//}
 
-/**
- * Show what is inside an abitrary JS object,
- * by writing it's propertly/values to a specific
- * HTML element like <p> or <pre>
- */
-function showObject(title, htmlelement, obj) {
-  var content = __showObject(obj, 0);
-  htmlelement.innerHTML = "<b style='display: inline-block; margin-bottom: 1em; text-decoration: underline;'>"+title.toUpperCase()+"</b>\n" + content;
-}
+///**
+// * Show what is inside an abitrary JS object,
+// * by writing it's propertly/values to a specific
+// * HTML element like <p> or <pre>
+// */
+//function showObject(title, htmlelement, obj) {
+//  var content = __showObject(obj, 0);
+//  htmlelement.innerHTML = "<b style='display: inline-block; margin-bottom: 1em; text-decoration: underline;'>"+title.toUpperCase()+"</b>\n" + content;
+//}
 
-/**
- * Wrapped by showObject, this is the function
- * that actually does the recursive string building
- * to show what's inside of a JS object.
- */
-function __showObject(obj, depth) {
-  var attr, act, string = "";
-  for(attr in obj) {
-    if(attr === "__proto__") continue;
-    if(attr === "__pointer") continue;
-    if(attr === "__blocklength") continue;
-    act = obj[attr];
-    if(act instanceof Array) {
-      string += spacer(depth) + "[" + attr + "]" + ": [Array("+act.length+")]\n";
-      string += __showObject(act, depth+1);
-    } else if(act instanceof Function) {
-      string += spacer(depth) + "[" + attr + "]" + ": [Function]\n";
-    } else if(act instanceof Object) {
-      string += spacer(depth) + "[" + attr + "]" + ": [Object]\n";
-      string += __showObject(act, depth+1);
-    } else {
-      string += spacer(depth) + "[" + attr + "]" + ": " + act + "\n";
-    }
-  }
-  return string;
-}
+///**
+// * Wrapped by showObject, this is the function
+// * that actually does the recursive string building
+// * to show what's inside of a JS object.
+// */
+//function __showObject(obj, depth) {
+//  var attr, act, string = "";
+//  for(attr in obj) {
+//    if(attr === "__proto__") continue;
+//    if(attr === "__pointer") continue;
+//    if(attr === "__blocklength") continue;
+//    act = obj[attr];
+//    if(act instanceof Array) {
+//      string += spacer(depth) + "[" + attr + "]" + ": [Array("+act.length+")]\n";
+//      string += __showObject(act, depth+1);
+//    } else if(act instanceof Function) {
+//      string += spacer(depth) + "[" + attr + "]" + ": [Function]\n";
+//    } else if(act instanceof Object) {
+//      string += spacer(depth) + "[" + attr + "]" + ": [Object]\n";
+//      string += __showObject(act, depth+1);
+//    } else {
+//      string += spacer(depth) + "[" + attr + "]" + ": " + act + "\n";
+//    }
+//  }
+//  return string;
+//}
 
 
 
@@ -57,7 +57,7 @@ xhr.open('GET', xhr_file, true);
 xhr.responseType = 'arraybuffer';
 if(xhr.mozResponseType) { xhr.mozResponseType = xhr.responseType; }
 xhr.onreadystatechange = function() {
-  if(xhr.readyState==4 && xhr.status==200) {
+  if(xhr.readyState==4 && (xhr.status==200||xhr.status==0)) {
     var dataResponse = xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response;
     xhrData = {pointer: 0, marks: [], bytecode: buildDataView(dataResponse)};
   }

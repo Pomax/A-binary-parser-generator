@@ -103,6 +103,7 @@ function generateParser(specfilecontent) {
             "$1  parser.bindInstance(\"$2\", struct);\n" +
             "$1  struct.__pointer = data.pointer;\n"+
             "$1  struct.__blocklength = 0;\n"+
+            "$1  struct.__typeName = '$2';\n"+
             "$1  return struct;\n"+
             "$1};\n"+
             "$1parser.addReadFunction(\"$2\",read$2);\n";
@@ -117,6 +118,7 @@ function generateParser(specfilecontent) {
             "$1  struct.__pointer = data.pointer;"+
             "$3"+
             "$1  struct.__blocklength = data.pointer - struct.__pointer;\n"+
+            "$1  struct.__typeName = '$2';\n"+
             "$1  return struct;\n"+
             "$1};\n"+
             "$1parser.addReadFunction(\"$2\",read$2);\n";

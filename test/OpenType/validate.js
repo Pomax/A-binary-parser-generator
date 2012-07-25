@@ -243,6 +243,7 @@ var readSFNT = function(data) {
     data.pointer = data.marks.pop();
     struct.length = parser.readULONG(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_tableRecord';
     return struct;
   };
   parser.addReadFunction("_tableRecord",read_tableRecord);
@@ -254,6 +255,7 @@ var readSFNT = function(data) {
   struct.tableRecords = [];
   parser.readArray(parser, data, struct.tableRecords, "_tableRecord", struct.numTables);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'SFNT';
   return struct;
 };
 parser.addReadFunction("SFNT",readSFNT);
@@ -282,6 +284,7 @@ var readcmap = function(data) {
         struct.idDelta = parser.readSHORT(data);
         struct.idRangeOffset = parser.readUSHORT(data);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_subHeaders';
         return struct;
       };
       parser.addReadFunction("_subHeaders",read_subHeaders);
@@ -330,6 +333,7 @@ var readcmap = function(data) {
         struct.endCharCode = parser.readULONG(data);
         struct.startGlyphID = parser.readULONG(data);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_group';
         return struct;
       };
       parser.addReadFunction("_group",read_group);
@@ -360,6 +364,7 @@ var readcmap = function(data) {
         struct.endCharCode = parser.readULONG(data);
         struct.startGlyphID = parser.readULONG(data);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_group';
         return struct;
       };
       parser.addReadFunction("_group",read_group);
@@ -379,6 +384,7 @@ var readcmap = function(data) {
         struct.endCharCode = parser.readULONG(data);
         struct.startGlyphID = parser.readULONG(data);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_group';
         return struct;
       };
       parser.addReadFunction("_group",read_group);
@@ -397,6 +403,7 @@ var readcmap = function(data) {
         struct.startUnicodeValue = parser.readUINT24(data);
         struct.additionalCount = parser.readBYTE(data);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_unicodeValueRanges';
         return struct;
       };
       parser.addReadFunction("_unicodeValueRanges",read_unicodeValueRanges);
@@ -408,6 +415,7 @@ var readcmap = function(data) {
         struct.unicodeValueRanges = [];
         parser.readArray(parser, data, struct.unicodeValueRanges, "_unicodeValueRanges", struct.numUnicodeValueRanges);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_defaultUVSTable';
         return struct;
       };
       parser.addReadFunction("_defaultUVSTable",read_defaultUVSTable);
@@ -418,6 +426,7 @@ var readcmap = function(data) {
         struct.unicodeValue = parser.readUINT24(data);
         struct.glyphID = parser.readUSHORT(data);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_UVSMapping';
         return struct;
       };
       parser.addReadFunction("_UVSMapping",read_UVSMapping);
@@ -429,6 +438,7 @@ var readcmap = function(data) {
         struct.UVSMappings = [];
         parser.readArray(parser, data, struct.UVSMappings, "_UVSMapping", struct.numUVSMappings);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_nonDefaultUVSTable';
         return struct;
       };
       parser.addReadFunction("_nonDefaultUVSTable",read_nonDefaultUVSTable);
@@ -446,6 +456,7 @@ var readcmap = function(data) {
         struct.nonDefaultUVSOffsetData = parser.readStructure(data, (typeof _nonDefaultUVSTable === 'undefined' ? parser.getReadFunction("_nonDefaultUVSTable") : _nonDefaultUVSTable), "IMMEDIATE", struct, struct.nonDefaultUVSOffset);
         data.pointer = data.marks.pop();
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_varSelectorRecord';
         return struct;
       };
       parser.addReadFunction("_varSelectorRecord",read_varSelectorRecord);
@@ -455,6 +466,7 @@ var readcmap = function(data) {
       parser.readArray(parser, data, struct.varSelectorRecords, "_varSelectorRecord", struct.numVarSelectorRecords);
     }
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_subtable';
     return struct;
   };
   parser.addReadFunction("_subtable",read_subtable);
@@ -469,6 +481,7 @@ var readcmap = function(data) {
     struct.offsetData = parser.readStructure(data, (typeof _subtable === 'undefined' ? parser.getReadFunction("_subtable") : _subtable), "LOCAL", struct, struct.offset);
     data.pointer = data.marks.pop();
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_encodingRecord';
     return struct;
   };
   parser.addReadFunction("_encodingRecord",read_encodingRecord);
@@ -479,6 +492,7 @@ var readcmap = function(data) {
   struct.subtables = [];
   parser.readArray(parser, data, struct.subtables, "_subtable", struct.numTables);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'cmap';
   return struct;
 };
 parser.addReadFunction("cmap",readcmap);
@@ -512,6 +526,7 @@ var readhead = function(data) {
   struct.indexToLocFormat = parser.readSHORT(data);
   struct.glyphDataFormat = parser.readSHORT(data);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'head';
   return struct;
 };
 parser.addReadFunction("head",readhead);
@@ -537,6 +552,7 @@ var readhhea = function(data) {
   struct.metricDataFormat = parser.readSHORT(data);
   struct.numberOfHMetrics = parser.readUSHORT(data);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'hhea';
   return struct;
 };
 parser.addReadFunction("hhea",readhhea);
@@ -551,6 +567,7 @@ var readhmtx = function(data) {
     struct.advanceWidth = parser.readUSHORT(data);;
     struct.lsb = parser.readSHORT(data);;
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_longHorMetric';
     return struct;
   };
   parser.addReadFunction("_longHorMetric",read_longHorMetric);
@@ -567,6 +584,7 @@ var readhmtx = function(data) {
     parser.delayArithmeticArrayRead(parser, data, data.pointer, parser.getReadFunction("SHORT"), struct, "leftSideBearing", ["maxp", "hhea"], [".numGlyphs",".numberOfHMetrics"], "-")
   }
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'hmtx';
   return struct;
 };
 parser.addReadFunction("hmtx",readhmtx);
@@ -595,6 +613,7 @@ var readmaxp = function(data) {
     struct.maxComponentDepth = parser.readUSHORT(data);
   }
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'maxp';
   return struct;
 };
 parser.addReadFunction("maxp",readmaxp);
@@ -613,6 +632,7 @@ var readname = function(data) {
     struct.length = parser.readUSHORT(data);
     struct.offset = parser.readUSHORT(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_nameRecord';
     return struct;
   };
   parser.addReadFunction("_nameRecord",read_nameRecord);
@@ -623,6 +643,7 @@ var readname = function(data) {
     struct.length = parser.readUSHORT(data);
     struct.offset = parser.getReadFunction("USHORT")(data); // offset relative to name.stringOffset
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_langTagRecord';
     return struct;
   };
   parser.addReadFunction("_langTagRecord",read_langTagRecord);
@@ -643,6 +664,7 @@ var readname = function(data) {
     parser.readArray(parser, data, struct.langTagRecords, "_langTagRecord", struct.langTagCount);
   }
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'name';
   return struct;
 };
 parser.addReadFunction("name",readname);
@@ -858,6 +880,7 @@ var readOS_2 = function(data) {
     struct.usMaxContext = parser.readUSHORT(data);
   }
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'OS_2';
   return struct;
 };
 parser.addReadFunction("OS_2",readOS_2);
@@ -893,6 +916,7 @@ var readpost = function(data) {
     }(data, numberOfGlyphs));
   }
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'post';
   return struct;
 };
 parser.addReadFunction("post",readpost);
@@ -901,6 +925,7 @@ var readcvt_ = function(data) {
   parser.bindInstance("cvt_", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'cvt_';
   return struct;
 };
 parser.addReadFunction("cvt_",readcvt_);
@@ -909,6 +934,7 @@ var readfpgm = function(data) {
   parser.bindInstance("fpgm", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'fpgm';
   return struct;
 };
 parser.addReadFunction("fpgm",readfpgm);
@@ -917,6 +943,7 @@ var readglyf = function(data) {
   parser.bindInstance("glyf", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'glyf';
   return struct;
 };
 parser.addReadFunction("glyf",readglyf);
@@ -933,6 +960,7 @@ var readloca = function(data) {
     parser.readArray(parser, data, struct.offsets, "ULONG", maxp.numGlyphs+1);
   }
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'loca';
   return struct;
 };
 parser.addReadFunction("loca",readloca);
@@ -941,6 +969,7 @@ var readprep = function(data) {
   parser.bindInstance("prep", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'prep';
   return struct;
 };
 parser.addReadFunction("prep",readprep);
@@ -949,6 +978,7 @@ var readCFF_ = function(data) {
   parser.bindInstance("CFF_", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'CFF_';
   return struct;
 };
 parser.addReadFunction("CFF_",readCFF_);
@@ -957,6 +987,7 @@ var readVORG = function(data) {
   parser.bindInstance("VORG", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'VORG';
   return struct;
 };
 parser.addReadFunction("VORG",readVORG);
@@ -965,6 +996,7 @@ var readBASE = function(data) {
   parser.bindInstance("BASE", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'BASE';
   return struct;
 };
 parser.addReadFunction("BASE",readBASE);
@@ -973,6 +1005,7 @@ var readGDEF = function(data) {
   parser.bindInstance("GDEF", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'GDEF';
   return struct;
 };
 parser.addReadFunction("GDEF",readGDEF);
@@ -981,6 +1014,7 @@ var readGPOS = function(data) {
   parser.bindInstance("GPOS", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'GPOS';
   return struct;
 };
 parser.addReadFunction("GPOS",readGPOS);
@@ -989,6 +1023,7 @@ var readGSUB = function(data) {
   parser.bindInstance("GSUB", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'GSUB';
   return struct;
 };
 parser.addReadFunction("GSUB",readGSUB);
@@ -997,6 +1032,7 @@ var readJSTF = function(data) {
   parser.bindInstance("JSTF", struct);
   struct.__pointer = data.pointer;
   struct.__blocklength = 0;
+  struct.__typeName = 'JSTF';
   return struct;
 };
 parser.addReadFunction("JSTF",readJSTF);
@@ -1012,6 +1048,7 @@ var readDSIG = function(data) {
     struct.ulLength = parser.readULONG(data);
     struct.ulOffset = parser.readULONG(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_signature';
     return struct;
   };
   parser.addReadFunction("_signature",read_signature);
@@ -1025,6 +1062,7 @@ var readDSIG = function(data) {
     struct.bSignature = [];
     parser.readArray(parser, data, struct.bSignature, "BYTE", struct.cbSignature);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_signatureBlock';
     return struct;
   };
   parser.addReadFunction("_signatureBlock",read_signatureBlock);
@@ -1036,6 +1074,7 @@ var readDSIG = function(data) {
   struct.signatureBlocks = [];
   parser.readArray(parser, data, struct.signatureBlocks, "_signatureBlock", struct.usNumSigs);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'DSIG';
   return struct;
 };
 parser.addReadFunction("DSIG",readDSIG);
@@ -1050,6 +1089,7 @@ var readgasp = function(data) {
     struct.rangeMaxPPEM = parser.readUSHORT(data);
     struct.rangeGaspBehavior = parser.readUSHORT(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_gaspRange';
     return struct;
   };
   parser.addReadFunction("_gaspRange",read_gaspRange);
@@ -1058,6 +1098,7 @@ var readgasp = function(data) {
   struct.gaspRange = [];
   parser.readArray(parser, data, struct.gaspRange, "_gaspRange", struct.numRanges);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'gasp';
   return struct;
 };
 parser.addReadFunction("gasp",readgasp);
@@ -1078,6 +1119,7 @@ var readhdmx = function(data) {
       parser.delayArrayRead(parser, data, data.pointer, parser.getReadFunction("BYTE"), struct, "widths", "maxp", "numGlyphs")
     }
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_DeviceRecord';
     return struct;
   };
   parser.addReadFunction("_DeviceRecord",read_DeviceRecord);
@@ -1087,6 +1129,7 @@ var readhdmx = function(data) {
   struct.records = [];
   parser.readArray(parser, data, struct.records, "_DeviceRecord", struct.numRecords);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'hdmx';
   return struct;
 };
 parser.addReadFunction("hdmx",readhdmx);
@@ -1102,6 +1145,7 @@ var readkern = function(data) {
     struct.right = parser.readUSHORT(data);
     struct.value = parser.readSHORT(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_kerningPair';
     return struct;
   };
   parser.addReadFunction("_kerningPair",read_kerningPair);
@@ -1131,6 +1175,7 @@ var readkern = function(data) {
         struct.glyphs = [];
         parser.readArray(parser, data, struct.glyphs, "USHORT", struct.nGlyphs);
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_classTable';
         return struct;
       };
       parser.addReadFunction("_classTable",read_classTable);
@@ -1145,6 +1190,7 @@ var readkern = function(data) {
           parser.delayArithmeticArrayRead(parser, data, data.pointer, parser.getReadFunction("SHORT"), struct, "values", ["kern", "kern"], [".leftClassTable.nGlyphs",".rightClassTable.nGlyphs"], "*")
         }
         struct.__blocklength = data.pointer - struct.__pointer;
+        struct.__typeName = '_tableValues';
         return struct;
       };
       parser.addReadFunction("_tableValues",read_tableValues);
@@ -1163,6 +1209,7 @@ var readkern = function(data) {
       data.pointer = data.marks.pop();
     }
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_table';
     return struct;
   };
   parser.addReadFunction("_table",read_table);
@@ -1171,6 +1218,7 @@ var readkern = function(data) {
   struct.tables = [];
   parser.readArray(parser, data, struct.tables, "_table", struct.nTables);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'kern';
   return struct;
 };
 parser.addReadFunction("kern",readkern);
@@ -1183,6 +1231,7 @@ var readLTSH = function(data) {
   struct.yPels = [];
   parser.readArray(parser, data, struct.yPels, "BYTE", struct.numGlyphs);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'LTSH';
   return struct;
 };
 parser.addReadFunction("LTSH",readLTSH);
@@ -1221,6 +1270,7 @@ var readPCLT = function(data) {
   struct.SerifStyle = parser.readBYTE(data);
   parser.readBYTE(data)
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'PCLT';
   return struct;
 };
 parser.addReadFunction("PCLT",readPCLT);
@@ -1237,6 +1287,7 @@ var readVDMX = function(data) {
     struct.yStartRatio = parser.readBYTE(data);
     struct.yEndRatio = parser.readBYTE(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_ratio';
     return struct;
   };
   parser.addReadFunction("_ratio",read_ratio);
@@ -1248,6 +1299,7 @@ var readVDMX = function(data) {
     struct.yMax = parser.readSHORT(data);
     struct.yMin = parser.readSHORT(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_vTable';
     return struct;
   };
   parser.addReadFunction("_vTable",read_vTable);
@@ -1261,6 +1313,7 @@ var readVDMX = function(data) {
     struct.entry = [];
     parser.readArray(parser, data, struct.entry, "_vTable", struct.recs);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_vdmx';
     return struct;
   };
   parser.addReadFunction("_vdmx",read_vdmx);
@@ -1274,6 +1327,7 @@ var readVDMX = function(data) {
   struct.groups = [];
   parser.readArray(parser, data, struct.groups, "_vdmx", struct.numRecs);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'VDMX';
   return struct;
 };
 parser.addReadFunction("VDMX",readVDMX);
@@ -1306,6 +1360,7 @@ var readvhea = function(data) {
   struct.metricDataFormat = parser.readSHORT(data);
   struct.numOfLongVerMetrics = parser.readUSHORT(data);
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'vhea';
   return struct;
 };
 parser.addReadFunction("vhea",readvhea);
@@ -1320,6 +1375,7 @@ var readvmtx = function(data) {
     struct.advanceHeight = parser.readUSHORT(data);
     struct.topSideBearing = parser.readSHORT(data);
     struct.__blocklength = data.pointer - struct.__pointer;
+    struct.__typeName = '_vMetric';
     return struct;
   };
   parser.addReadFunction("_vMetric",read_vMetric);
@@ -1331,11 +1387,12 @@ var readvmtx = function(data) {
   }
   struct.topSideBearing = [];
   if(parser.getInstance("maxp") && parser.getInstance("vhea")){
-    parser.readArray(parser, data, struct.topSideBearing, "SHORT", parser.getInstance("maxp").nuGlyphs - parser.getInstance("vhea").numOfLongVerMetrics);
+    parser.readArray(parser, data, struct.topSideBearing, "SHORT", parser.getInstance("maxp").numGlyphs - parser.getInstance("vhea").numOfLongVerMetrics);
   } else {
-    parser.delayArithmeticArrayRead(parser, data, data.pointer, parser.getReadFunction("SHORT"), struct, "topSideBearing", ["maxp", "vhea"], [".nuGlyphs",".numOfLongVerMetrics"], "-")
+    parser.delayArithmeticArrayRead(parser, data, data.pointer, parser.getReadFunction("SHORT"), struct, "topSideBearing", ["maxp", "vhea"], [".numGlyphs",".numOfLongVerMetrics"], "-")
   }
   struct.__blocklength = data.pointer - struct.__pointer;
+  struct.__typeName = 'vmtx';
   return struct;
 };
 parser.addReadFunction("vmtx",readvmtx);
