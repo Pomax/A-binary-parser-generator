@@ -10,18 +10,18 @@ Defining Collection SFNT {
 
   // "private" collection
   Collection _tableRecord {
-    ASCII[4] tag                             // four byte table name
-    ULONG checkSum                           // CheckSum for this table.
-    GLOBAL ULONG OFFSET offset TO VALUE(tag) // Offset from beginning of TrueType font file.
-    ULONG length                             // Length of this table.
+    ASCII[4] tag                              // four byte table name
+    ULONG checkSum                            // CheckSum for this table.
+    GLOBAL ULONG OFFSET offset TO VALUE(tag)  // Offset from beginning of TrueType font file.
+    ULONG length                              // Length of this table.
   }
 
-  LONG version                         // 0x00010000 for TTF , string 'OTTO' for CFF
-  USHORT numTables                     // Number of tables in this font
-  USHORT searchRange                   // (Maximum power of 2 <= numTables) x 16.
-  USHORT entrySelector                 // Log2(maximum power of 2 <= numTables).
-  USHORT rangeShift                    // NumTables x 16-searchRange.
-  _tableRecord[numTables] tableRecords // 16 byte table records
+  LONG version                          // 0x00010000 for TTF , string 'OTTO' for CFF
+  USHORT numTables                      // Number of tables in this font
+  USHORT searchRange                    // (Maximum power of 2 <= numTables) x 16.
+  USHORT entrySelector                  // Log2(maximum power of 2 <= numTables).
+  USHORT rangeShift                     // NumTables x 16-searchRange.
+  _tableRecord[numTables] tableRecords  // 16 byte table records
 }
 
 /**
@@ -327,7 +327,12 @@ Collection name {
     _langTagRecord[langTagCount] langTagRecords
   }
   // Start of storage area. Not decided on how to do the referencing here yet...
-  //  ASCII[...length - (HERE - START)...] stringStorage
+  // FIXME: HACK! but maybe a private var works? Hmm...
+  //        at any rate, PARENT.length does not exist yet at this point,
+  //        so this won't work:
+  //
+  //var v = PARENT.length - (HERE-START);
+  //ASCII[v] stringStorage
 }
 
 /**
@@ -655,12 +660,302 @@ Collection VORG {}
     GSUB - Glyph substitution data
     JSTF - Justification data
 
+  See https://www.microsoft.com/typography/otspec/chapter2.htm
+
 **/
 
 Collection BASE {}
+
 Collection GDEF {}
+
 Collection GPOS {}
-Collection GSUB {}
+
+// global substitution table
+Collection GSUB {
+  LONG Version
+
+  if(Version!=0x00010000) {
+    TERMINATE Unknown GSUB table version
+  }
+
+  Collection _ScriptList {
+    USHORT ScriptCount
+
+    Collection _ScriptRecord {
+      ASCII[4] ScriptTag
+
+      Collection _ScriptTable {
+        USHORT DefaultLangSys                    // Offset to DefaultLangSys table-from beginning of Script table-may be NULL
+        USHORT LangSysCount
+
+        Collection _LangSysRecord {
+          ASCII[4] LangSysTag
+
+          Collection _LangSysTable {
+            RESERVED USHORT                      // OFFSET LookupOrder NULL (reserved for an offset to a reordering table)
+            USHORT ReqFeatureIndex               // Index of a feature required for this language system - if no required features = 0xFFFF
+            USHORT FeatureCount                  // Number of FeatureIndex values for this language system - excludes the required feature
+            USHORT[FeatureCount] FeatureIndex    // Array of indices into the FeatureList - in arbitrary order
+          }
+
+          // Offset to LangSys table, relative to the beginning of the Script table
+          RELATIVE USHORT OFFSET LangSys TO _LangSysTable FROM(PARENT.PARENT.START)
+        }
+
+        _LangSysRecord[LangSysCount] LangSysRecords
+      }
+
+      // Offset to Script table, relative to the beginning of the ScriptList
+      RELATIVE USHORT OFFSET Script TO _ScriptTable FROM(PARENT.PARENT.START + PARENT.PARENT.ScriptList)
+    }
+
+    _ScriptRecord[ScriptCount] ScriptRecords
+  }
+
+  LOCAL USHORT OFFSET ScriptList TO _ScriptList
+
+  Collection _FeatureList {
+    USHORT FeatureCount                          // Number of FeatureRecords in this table
+
+    Collection _FeatureRecord {
+      ASCII[4] FeatureTag                        // 4-byte feature identification tag
+
+      Collection _FeatureTable {
+        RESERVED USHORT                          // OFFSET FeatureParams = NULL (reserved for offset to FeatureParams)
+        USHORT LookupCount                       // Number of LookupList indices for this feature
+        USHORT[LookupCount] LookupListIndex      // Array of LookupList indices for this feature - zero-based (first lookup is LookupListIndex = 0)
+      }
+
+      // Offset to Feature table, relative to the beginning of the FeatureList
+      RELATIVE USHORT OFFSET Feature TO _FeatureTable FROM(PARENT.PARENT.START + PARENT.PARENT.FeatureList)
+    }
+
+    _FeatureRecord[FeatureCount] FeatureRecords  // Array of FeatureRecords - zero-based (first feature has FeatureIndex = 0) - listed alphabetically by FeatureTag
+  }
+
+  LOCAL USHORT OFFSET FeatureList TO _FeatureList
+
+  Collection _LookupList {
+    USHORT LookupCount                           // Number of lookups in this table
+    USHORT[LookupCount] Lookup                   // Array of offsets to Lookup tables -from beginning of LookupList - zero based (first lookup is Lookup index = 0)
+
+    Collection _Lookuptable {
+      USHORT LookupType                          // GSUB-specific lookup types, explained below
+      USHORT LookupFlag                          // Lookup qualifiers
+      USHORT SubTableCount                       // Number of SubTables for this lookup
+      USHORT[SubTableCount] SubTable             // Array of offsets to SubTables - from beginning of Lookup table
+
+      Collection _SubTable {
+        // shared by all subtables
+        USHORT SubstFormat
+
+        // used in almost every subtable format
+        Collection _CoverageTable {
+          USHORT CoverageFormat
+          if(CoverageFormat==1) {
+            USHORT GlyphCount
+            USHORT[GlyphCount] GlyphArray
+          }
+          if(CoverageFormat==2) {
+            USHORT RangeCount
+            Collection _RangeRecord {
+              USHORT Start
+              USHORT End
+              USHORT StartCoverageIndex
+            }
+            _RangeRecord[RangeCount] RangeRecords
+          }
+        }
+
+        // ==========================================
+        // LookupType 1: Single Substitution Subtable
+        // ==========================================
+        if(PARENT.LookupType==1) {
+          // Offset to Coverage table, relative to the beginning of the Substitution table
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+          if(SubstFormat==1) {
+            // Add to original GlyphID to get substitute GlyphID
+            SHORT DeltaGlyphID
+          }
+          if(SubstFormat==2) {
+            //Number of GlyphIDs in the Substitute array
+            USHORT GlyphCount
+            // Array of substitute GlyphIDs-ordered by Coverage Index
+            USHORT[GlyphCount] Substitute
+          }
+        }
+
+        // ============================================
+        // LookupType 2: Multiple Substitution Subtable
+        // ============================================
+        if(PARENT.LookupType==2) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+          USHORT SequenceCount
+          USHORT[SequenceCount] Sequence
+
+          Collection _SequenceTable {
+            USHORT GlyphCount
+            USHORT[GlyphCount] Substitute
+          }
+
+          // Array of offsets to Sequence tables, relative to the beginning of the Substitution table
+          _SequenceTable[SequenceCount] SequenceTables OFFSET BY Sequence RELATIVE TO START
+        }
+
+        // =============================================
+        // LookupType 3: Alternate Substitution Subtable
+        // =============================================
+        if(PARENT.LookupType==3) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+          USHORT AlternateSetCount
+          USHORT[AlternateSetCount] AlternateSet
+
+          Collection _AlternateSetTable {
+            USHORT GlyphCount
+            USHORT[GlyphCount] Alternate
+          }
+
+          // Array of offsets to Sequence tables, relative to the beginning of the Substitution table
+          _AlternateSetTable[AlternateSetCount] AlternateSetTables OFFSET BY AlternateSet RELATIVE TO START
+        }
+
+        // ============================================
+        // LookupType 4: Ligature Substitution Subtable
+        // ============================================
+        if(PARENT.LookupType==4) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+          USHORT LigSetCount
+          USHORT[LigSetCount] LigatureSet
+
+          Collection _LigatureSetTable {
+            USHORT LigatureCount
+            USHORT[LigatureCount] Ligature
+
+            Collection _LigatureTable {
+              USHORT LigGlyph
+              USHORT CompCount
+              USHORT[CompCount-1] Component
+            }
+
+            // Array of offsets to Ligature tables, relative to the beginning of the LigatureSet table
+            _LigatureTable[LigatureCount] LigatureTables OFFSET BY Ligature RELATIVE TO START
+          }
+
+          // AArray of offsets to LigatureSet tables, relative to the beginning of the Substitution table
+          _LigatureSetTable[LigSetCount] LigatureSetTables OFFSET BY LigatureSet RELATIVE TO START
+        }
+
+        // ===============================================================================
+        // LookupType 5: Contextual Substitution Subtable - This one is properly messed up
+        // ===============================================================================
+        if(PARENT.LookupType==5) {
+
+          Collection _SubstLookupRecord {
+            USHORT SequenceIndex
+            USHORT LookupListIndex
+          }
+
+          // =============================
+          // Context Substitution Format 1
+          // =============================
+          if(SubstFormat==1) {
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+            USHORT SubRuleSetCount
+            USHORT[SubRuleSetCount] SubRuleSet
+
+            Collection _SubRuleSetTable {
+              USHORT SubRuleCount
+              USHORT[SubRuleCount] SubRule
+
+              Collection _SubRuleTable {
+                USHORT GlyphCount
+                USHORT SubstCount
+                USHORT[GlyphCount-1] Input
+                _SubstLookupRecord[SubstCount] SubstLookupRecord
+              }
+
+              // Array of offsets to SubRule tables, relative to the beginning of the SubRuleSet table
+              _SubRuleTable[SubRuleCount] SubRuleTables OFFSET BY SubRule RELATIVE TO START
+            }
+
+            // Array of offsets to SubRuleSet tables, relative to the beginning of Substitution table
+            _SubRuleSetTable[SubRuleSetCount] SubRuleSetTables OFFSET BY SubRuleSet RELATIVE TO START
+          }
+
+          // =============================
+          // Context Substitution Format 2
+          // =============================
+          if(SubstFormat==2) {
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+            RELATIVE USHORT OFFSET ClassDef TO _ClassDefTable FROM(START)
+            USHORT SubClassSetCnt
+            USHORT[SubClassSetCnt] SubClassSet
+
+            Collection _SubClassSetTable {
+              USHORT SubClassRuleCnt
+              USHORT[SubClassRuleCnt] SubClassRule
+
+              Collection _SubClassRuleTable {
+                USHORT GlyphCount
+                USHORT SubstCount
+                USHORT[GlyphCount-1] Class
+                _SubstLookupRecord[SubstCount] SubstLookupRecord
+              }
+
+              // Array of offsets to SubClassRule tables, relative to the beginning of the SubClassSet
+              _SubClassRuleTable[SubClassRuleCnt] SubClassRuleTables OFFSET BY SubClassRule RELATIVE TO START
+            }
+
+            // Array of offsets to SubClassSet tables, relative to the beginning of the Substitution table
+            _SubClassSetTable[GlyphCount] SubClassSetTables OFFSET BY SubClassSet RELATIVE TO START
+          }
+
+          // =============================
+          // Context Substitution Format 3
+          // =============================
+          if(SubstFormat==3) {
+            USHORT GlyphCount
+            USHORT SubstCount
+            USHORT[GlyphCount] Coverage
+            // Array of offsets to Coverage table-from beginning of Substitution table-in glyph sequence order
+            _CoverageTable[GlyphCount] CoverageTables OFFSET BY Coverage RELATIVE TO START
+            _SubstLookupRecord[SubstCount] SubstLookupRecord
+          }
+        }
+
+        // =======================================================
+        // LookupType 6: Chaining Contextual Substitution Subtable
+        // =======================================================
+        if(PARENT.LookupType==6) {
+          // ... CONTINUE SPEC HERE...
+        }
+
+        // ====================================
+        // LookupType 7: Extension Substitution
+        // ====================================
+        if(PARENT.LookupType==7) {
+        }
+
+        // ======================================================================
+        // LookupType 8: Reverse Chaining Contextual Single Substitution Subtable
+        // ======================================================================
+        if(PARENT.LookupType==8) {
+        }
+      }
+
+      _SubTable[SubTableCount] SubTables OFFSET BY SubTable RELATIVE TO START
+
+      USHORT MarkFilteringSet                    // Index (base 0) into GDEF mark glyph sets structure. This field is only present if bit UseMarkFilteringSet of lookup flags is set.
+    }
+
+    // now this one is interesting. It's an array of Lookup Table structs,
+    // each struct beginning at an offset indicated by the Lookup array.
+    _Lookuptable[LookupCount] Lookuptables OFFSET BY Lookup RELATIVE TO START
+  }
+
+  LOCAL USHORT OFFSET LookupList TO _LookupList
+}
+
 Collection JSTF {}
 
 /**

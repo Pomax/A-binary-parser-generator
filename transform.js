@@ -98,10 +98,11 @@ function generateParser(specfilecontent) {
 
   // Convert empty collections
   search = "(^[ \\t]*)Collection[\\W]*(\\w+)\\s*\\{\\s*\\}";
-  replace = "$1var read$2 = function(data) {\n"+
+  replace = "$1var read$2 = function(data, parent) {\n"+
             "$1  var struct = {};\n"+
             "$1  parser.bindInstance(\"$2\", struct);\n" +
             "$1  struct.__pointer = data.pointer;\n"+
+            "$1  struct.__parent = parent;\n"+
             "$1  struct.__blocklength = 0;\n"+
             "$1  struct.__typeName = '$2';\n"+
             "$1  return struct;\n"+
@@ -110,12 +111,13 @@ function generateParser(specfilecontent) {
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
 
-  // Convert collections into object generator functions
+  // Convert non-empty collections into object generator functions
   search = "^([ \\t]*)Collection[\\W]*(\\S+)\\s*{([\\w\\W]+?)^\\1}";  // note the +?, for non-greedy selection.
-  replace = "$1var read$2 = function(data) {\n"+
+  replace = "$1var read$2 = function(data, parent) {\n"+
             "$1  var struct = {};\n"+
             "$1  parser.bindInstance(\"$2\", struct);\n"+
             "$1  struct.__pointer = data.pointer;"+
+            "$1  struct.__parent = parent;\n"+
             "$3"+
             "$1  struct.__blocklength = data.pointer - struct.__pointer;\n"+
             "$1  struct.__typeName = '$2';\n"+
@@ -131,13 +133,12 @@ function generateParser(specfilecontent) {
 
   // Convert conditional statements (note that the left operand is presumed to be the record, not the match value)
   search = "^([ \\t]*)if\\((\\w+)\\.(.*?)\\)";
-  replace = "$1if(parser.getInstance(\"$2\").$3)";
+  replace = "$1if((parser.getInstance(\"$2\") && parser.getInstance(\"$2\").$3) || (typeof $2 !== \"undefined\" && $2.$3))";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
   search = "^([ \\t]*)if\\(([^\\.)]+)\\)";
   replace = "$1if(struct.$2)";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
-
 
 
   // Skip over any reserved records (i.e. read-and-forget)
@@ -148,9 +149,19 @@ function generateParser(specfilecontent) {
 
   // Deal with offsets to specific structs
   search = "([ \\t]*)(GLOBAL|LOCAL|IMMEDIATE) ([\\w_]+) OFFSET (\\w+)\\s*TO ([^\\s]+)";
-  replace = "$1struct.$4 = parser.getReadFunction(\"$3\")(data);\n"+
+  replace = "$1struct.$4 = parser.getReadFunction(\"$3\")(data, struct);\n"+
             "$1data.marks.push(data.pointer);\n"+
             "$1struct.$4Data = parser.readStructure(data, (typeof $5 === 'undefined' ? parser.getReadFunction(\"$5\") : $5), \"$2\", struct, struct.$4);\n"+
+            "$1data.pointer = data.marks.pop();\n";
+  specfilecontent = regExpReplace(specfilecontent, search, replace);
+
+
+  // Deal with offsets to specific structs relative to some global offset (indicated in FROM(...))
+  search = "([ \\t]*)RELATIVE ([\\w_]+) OFFSET (\\w+)\\s*TO ([^\\s]+) FROM\\(([^)]+)\\).*$";
+  // $1RELATIVE $2 OFFSET $3 TO $4 FROM($5)
+  replace = "$1struct.$3 = parser.getReadFunction(\"$2\")(data, struct);\n"+
+            "$1data.marks.push(data.pointer);\n"+
+            "$1struct.$3Data = parser.readStructure(data, (typeof $4 === 'undefined' ? parser.getReadFunction(\"$4\") : $4), \"GLOBAL\", struct, ($5 + struct.$3));\n"+
             "$1data.pointer = data.marks.pop();\n";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
@@ -169,13 +180,13 @@ function generateParser(specfilecontent) {
 
   // Read a self-descriptive record
   search = "([ \\t]*)COLLECTION<(\\w+)>\\s*(OR \\s*(\\w+)\\[(\\w+)\\]\\s*)(\\w+)";
-  replace = "$1var f$2 = parser.getReadFunction(struct.$2);\n"+
+  replace = "$1var f$2 = parser.getReadFunction(struct.$2, struct);\n"+
             "$1if(typeof f$2 !== 'undefined') {\n"+
             "$1  $1struct.$6 = f$2(data);\n"+
             "$1} else {\n"+
             "$1  $1struct.$6 = [];\n"+
             "$1  if(debug) window.console.log('reading '+struct.$2+' as '+$4+'['+struct.$5+'] of raw data');\n"+
-            "$1  parser.readArray(parser, data, struct.$6, \"$4\", struct.$5); \n"+
+            "$1  parser.readArray(parser, data, struct, struct.$6, \"$4\", struct.$5); \n"+
             "$1}";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
@@ -195,8 +206,18 @@ function generateParser(specfilecontent) {
   replace = "data.pointer";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
-  search = "START";
-  replace = "struct.__pointer";
+  // FIXME: this is horribly inefficient =)
+  search = "([^\.])PARENT";
+  replace = "$1struct.__parent";
+  specfilecontent = regExpReplace(specfilecontent, search, replace);
+  search = "\.PARENT";
+  replace = ".__parent";
+  specfilecontent = regExpReplace(specfilecontent, search, replace);
+  search = "([^\.])START";
+  replace = "$1struct.__pointer";
+  specfilecontent = regExpReplace(specfilecontent, search, replace);
+  search = "\.START";
+  replace = ".__pointer";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
 
@@ -215,24 +236,19 @@ function generateParser(specfilecontent) {
   // Convert typed array records that use a numerical size indicator
   search = "([ \\t]*)([\\w_]+)\\[(\\d+)\\]\\s*(\\w+)";
   replace = "$1struct.$4 = [];\n"+
-            //"$1(function(data, arr, readcount) {\n"+
-            //"$1  while(readcount-->0) {\n"+
-            //"$1    arr.push(read$2(data));\n"+
-            //"$1  }\n"+
-            //"$1}(data, struct.$4, $3));";
-            "$1parser.readArray(parser, data, struct.$4, \"$2\", $3);";
+            "$1parser.readArray(parser, data, struct, struct.$4, \"$2\", $3);";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
+  // Convert typed array records that use a local symbolic size indicator, positionally indexed by another array
+  search = "([ \\t]*)([\\w_]+)\\[([^\\.\\s]+(\\s*[\\+\\-\\*\\/]\\s*[^)]+)*)\\]\\s*(\\w+) OFFSET BY (\\w+(\\W\\w+)*) RELATIVE TO (\\w+(\\W\\w+)*)";
+  replace = "$1struct.$5 = [];\n"+
+            "$1parser.readOffsetArray(parser, data, struct, struct.$5, \"$2\", struct.$3, struct.$6, $8);";
+  specfilecontent = regExpReplace(specfilecontent, search, replace);
 
   // Convert typed array records that use a local symbolic size indicator
-  search = "([ \\t]*)([\\w_]+)\\[([^\\.\\s]+(\\s*[\\+\\-\\*\\/]\\s*[^)]+)*)\\]\\s*(\\w+)";
+  search = "([ \\t]*)([\\w_]+)\\[([^\\.\\s]+(\\s*[\\+\\-\\*\\/]\\s*[^)]+)*)\\]\\s*(\\w+)($|\s*[^O])";
   replace = "$1struct.$5 = [];\n"+
-            //"$1(function(data, arr, readcount) {\n"+
-            //"$1  while(readcount-->0) {\n"+
-            //"$1    arr.push(read$2(data));\n"+
-            //"$1  }\n"+
-            //"$1}(data, struct.$5, struct.$3));";
-            "$1parser.readArray(parser, data, struct.$5, \"$2\", struct.$3);";
+            "$1parser.readArray(parser, data, struct, struct.$5, \"$2\", struct.$3);";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
 
@@ -243,12 +259,7 @@ function generateParser(specfilecontent) {
   search = "([ \\t]*)([\\w_]+)\\[(\\w+)\\.(\\w+)\\]\\s*(\\w+)";
   replace = "$1struct.$5 = [];\n"+
             "$1if(parser.getInstance(\"$3\")){\n"+
-            //"$1  (function(data, arr, readcount) {\n"+
-            //"$1    while(readcount-->0) {\n"+
-            //"$1      arr.push(read$2(data));\n"+
-            //"$1    }\n"+
-            //"$1  }(data, struct.$5, getInstance(\"$3\").$4));\n"+
-            "$1  parser.readArray(parser, data, struct.$5, \"$2\", parser.getInstance(\"$3\").$4);\n"+
+            "$1  parser.readArray(parser, data, struct, struct.$5, \"$2\", parser.getInstance(\"$3\").$4);\n"+
             "$1} else {\n"+
             "$1  parser.delayArrayRead(parser, data, data.pointer, parser.getReadFunction(\"$2\"), struct, \"$5\", \"$3\", \"$4\")\n"+
             "$1}";
@@ -263,13 +274,7 @@ function generateParser(specfilecontent) {
   search = "([ \\t]*)([\\w_]+)\\[(\\w+)((\\.\\w+)+)?\\s+([+\\-*])\\s+(\\w+)((\\.\\w+)+)?\\]\\s*(\\w+)";
   replace = "$1struct.$10 = [];\n"+
             "$1if(parser.getInstance(\"$3\") && parser.getInstance(\"$7\")){\n"+
-            //"$1  (function(data, arr, readcount) {\n"+
-            //"$1    while(readcount-->0) {\n"+
-            //"$1      arr.push(read$2(data));\n"+
-            //"$1    }\n"+
-            //"$1  }(data, struct.$10, getInstance(\"$3\")$4 $6 getInstance(\"$7\")$8));"+
-            "$1  parser.readArray(parser, data, struct.$10, \"$2\", parser.getInstance(\"$3\")$4 $6 parser.getInstance(\"$7\")$8);\n"+
-
+            "$1  parser.readArray(parser, data, struct, struct.$10, \"$2\", parser.getInstance(\"$3\")$4 $6 parser.getInstance(\"$7\")$8);\n"+
             "$1} else {\n"+
             "$1  parser.delayArithmeticArrayRead(parser, data, data.pointer, parser.getReadFunction(\"$2\"), struct, \"$10\", [\"$3\", \"$7\"], [\"$4\",\"$8\"], \"$6\")\n"+
             "$1}";
@@ -281,12 +286,7 @@ function generateParser(specfilecontent) {
   // becomes (function(...) { ... }(data, struct.$4, $3))
   search = "([ \\t]*)([\\w_]+)\\[([^\\]]+)\\]\\s*(\\w+)";
   replace = "$1struct.$4 = [];\n"+
-            //"$1(function(data, arr, readcount) {\n"+
-            //"$1  while(readcount-->0) {\n"+
-            //"$1    arr.push(read$2(data));\n"+
-            //"$1  }\n"+
-            //"$1}(data, struct.$4, $3));";
-            "$1parser.readArray(parser, data, struct.$4, \"$2\", $3);";
+            "$1parser.readArray(parser, data, struct, struct.$4, \"$2\", $3);";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
 
@@ -356,13 +356,27 @@ function generateParser(specfilecontent) {
    * generic array filling function, using whatever
    * reader can deal with type <type>.
    */
-  var readArray = function(parser, data, array, type, readcount) {
+  var readArray = function(parser, data, parent, array, type, readcount) {
     var readFunction = parser.getReadFunction(type);
     while(readcount-->0) {
-      array.push(readFunction(data));
+      array.push(readFunction(data, parent));
     }
   };
   predefined.push("readArray: "+readArray.toString());
+
+  /**
+   * generic array filling function, using whatever
+   * reader can deal with type <type>, but with positions
+   * in the data stream determined by a secondary indexing array.
+   */
+  var readOffsetArray = function(parser, data, parent, array, type, readcount, indexarray, offset) {
+    var readFunction = parser.getReadFunction(type), i;
+    for(i=0; i<readcount; i++) {
+      data.pointer = offset + indexarray[i];
+      array.push(readFunction(data, parent));
+    }
+  };
+  predefined.push("readOffsetArray: "+readOffsetArray.toString());
 
   /**
    * read a single byte numerical value from the data object, moving the pointer forward by 1 byte
@@ -459,14 +473,14 @@ function generateParser(specfilecontent) {
     }  // note that IMMEDIATE doesn't require pointer reassignment
     var f = type;
     if(typeof type === "string") {
-      f = new Function("data","parser", ""+
+      f = new Function("data","struct","parser", ""+
                        "if(typeof parser.getReadFunction('"+type.replace(/\W/,'_')+"') !== 'undefined') { "+
-                       "  return parser.getReadFunction('"+type.replace(/\W/,'_')+"')(data); "+
+                       "  return parser.getReadFunction('"+type.replace(/\W/,'_')+"')(data, struct); "+
                        "} else {"+
                        "  window.console.log('WARNING = read"+type+"() does not exist - Collection ["+type+"] missing from .spec file?');"+
                        "  return false; }");
     }
-    var structure = f(data,this);
+    var structure = f(data,struct,this);
     data.pointer = curptr;
     return structure;
   };
@@ -515,11 +529,11 @@ function generateParser(specfilecontent) {
       if(tbl && tbl[e.tablePropertyName]) {
         var ptr = e.data.pointer;
         e.data.pointer = e.pointer;
-        (function(data, arr, readFunction, readcount) {
+        (function(data, struct, arr, readFunction, readcount) {
           while(readcount-->0) {
-            arr.push(readFunction(data));
+            arr.push(readFunction(data, struct));
           }
-        }(e.data, e.struct[e.propertyName], e.readFunction, tbl[e.tablePropertyName]));
+        }(e.data, e.struct, e.struct[e.propertyName], e.readFunction, tbl[e.tablePropertyName]));
         e.data.pointer = ptr;
         this.delayedArrays.splice(i, 1); i--; last--;
       } else {
@@ -582,15 +596,15 @@ function generateParser(specfilecontent) {
       if(count !== false) {
         var ptr = e.data.pointer;
         e.data.pointer = e.pointer;
-        (function(data, arr, readFunction, readcount) {
+        (function(data, struct, arr, readFunction, readcount) {
           while(readcount-->0) {
-            arr.push(readFunction(data));
+            arr.push(readFunction(data, struct));
           }
-        }(e.data, e.struct[e.propertyName], e.readFunction, count));
+        }(e.data, e.struct, e.struct[e.propertyName], e.readFunction, count));
         e.data.pointer = ptr;
         this.delayedArithmeticArrays.splice(i, 1); i--; last--;
       } else {
-        this,delayArithmeticArrayRead(e.parser, e.data, e.pointer, e.readFunction, e.struct, e.propertyName, e.tableNames, e.tablePropertyNames, e.operator);
+        this.delayArithmeticArrayRead(e.parser, e.data, e.pointer, e.readFunction, e.struct, e.propertyName, e.tableNames, e.tablePropertyNames, e.operator);
       }
     }
     if(this.delayedArithmeticArrays.length===0) { this.arithmeticArrayReadQueued = false; }
