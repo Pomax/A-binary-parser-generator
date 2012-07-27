@@ -54,3 +54,23 @@ h1 {
   font-variant: small-caps;
   text-align: center;
 }
+
+.main, .sidebar {
+  display: inline-block;
+  vertical-align: top;
+  margin: auto;
+}
+
+.sidebar {
+  position: absolute;
+  right: 0;
+  height: 100%;
+  font-family: monospace;
+  margin-left: auto;
+  overflow-y: scroll;
+}
+
+#codepre span {
+  background-color: yellow;
+  color: blue;
+}

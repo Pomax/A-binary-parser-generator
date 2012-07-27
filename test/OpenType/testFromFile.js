@@ -19,7 +19,7 @@ function getData(url, callback, asByteCode) {
 var xhr_file = 'UbuntuMono-R.ttf', xhrData = false;
 getData(xhr_file, function(xhr) {
   var dataResponse = xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response;
-  xhrData = {pointer: 0, marks: [], bytecode: buildDataView(dataResponse)};
+  xhrData = {pointer: 0, marks: [], data: dataResponse, bytecode: buildDataView(dataResponse)};
 }, true);
 
 var spec_file = '../../OpenType.spec', specData = false;
@@ -41,16 +41,62 @@ function tryLoad() {
 /**
  * When both fonts have been loaded, we parse them, to see what they're made of!
  */
-function load() {
+function load(rawData) {
   var dataObject;
   xhrData.pointer = 0;
   var parser = new Parser();
   dataObject = parser.parse(xhrData);
   showObject(filetype, document.getElementById('data_obj'), dataObject, 0);
+
+  // map to file's hex code
+  if(typeof rawData === "undefined" && typeof xhrData !== "undefined") {
+    rawData = xhrData.data;
+  }
+  var strData = new Uint8Array(rawData),
+      hex = "",
+      last=strData.length,
+      i, hv,
+      wrap = 8*2;
+  for(i=0; i<last; i++) {
+    hv = strData[i].toString(16).toUpperCase();
+    hex += (hv.length == 1 ? "0" : '') + hv + (i > 0 && (i+1) % wrap === 0 ?  "\n" : " ");
+  }
+  $('#codepre').text(hex);
+  $('.sidebar').css("width",(3*wrap + 2)+"em");
 }
+
 
 tryLoad();
 
+/**
+ * map to hex range
+ */
+function mapToHex(start, length) {
+  start *= 3;
+  length *= 3;
+  var hex = $('#codepre').text();
+  hex = hex.replace("<span>",'');
+  hex = hex.replace("</span>",'');
+  hex = hex.substring(0,start) + "<span >" + hex.substring(start,start+length) + "</span>" + hex.substring(start+length);
+  $('#codepre').html(hex);
+  $('.sidebar').height($(document).height()-50);
+/*
+  var fooOffset = jQuery('#codepre span').offset(),
+      destination = fooOffset.top + 200;
+  $('.sidebar').scrollTop(destination);
+*/
+  return false;
+}
+
+/**
+ * scroll to hex range
+ */
+function scrollToHex(start, length) {
+  start *= 3;
+  length *= 3;
+  //...
+  return false;
+}
 
 /**
  * Try to enable drag and drop for files
@@ -71,7 +117,7 @@ if (typeof window.FileReader === 'undefined') {} else {
     reader.onload = function (event) {
       data = event.target.result;
       xhrData = {pointer: 0, marks: [], bytecode: buildDataView(data)};
-      load();
+      load(data);
     };
     reader.readAsArrayBuffer(file);
     return false;

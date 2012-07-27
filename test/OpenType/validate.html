@@ -7,12 +7,17 @@
   </head>
 
   <body>
-    <h1>Let's have a look at your font from a bytecode perspective</h1>
-    <div id="holder">
-      Drag-and-drop your font here...
-      <div class="aside">parsing based on <a href="../../OpenType.spec">this</a> .spec file</div>
+    <div class="main">
+      <h1>Let's have a look at your font from a bytecode perspective</h1>
+      <div id="holder">
+        Drag-and-drop your font here...
+        <div class="aside">parsing based on <a href="../../OpenType.spec">this</a> .spec file</div>
+      </div>
+      <pre id="data_obj">loading...</pre>
     </div>
-    <pre id="data_obj">loading...</pre>
+    <div class="sidebar">
+      <pre class="hex" id="codepre"></pre>
+    </div>
   </body>
 
   <!-- external scripts -->

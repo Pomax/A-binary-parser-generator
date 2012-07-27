@@ -39,7 +39,7 @@ function __showObject(obj, depth) {
     } else if(act instanceof Function) {
       string += spacer(depth) + "[" + attr + "]" + ": [Function]\n";
     } else if(act instanceof Object) {
-      string += spacer(depth) + "[" + attr + "]" + " <details><summary>[" + act["__typeName"] + "]</summary><div>";
+      string += spacer(depth) + "[" + attr + "]" + " <details><summary onmouseover='mapToHex("+act.__pointer+","+act.__blocklength+")'>[" + act["__typeName"] + "]</summary><div>";
       string += __showObject(act, depth+1) + "</div></details><br>";
     } else {
       string += spacer(depth) + "[" + attr + "]" + ": " + act + "\n";
