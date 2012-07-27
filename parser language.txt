@@ -8,17 +8,22 @@ The parser knows a relatively small language:
            | <value> [+-*] <value>
            | HERE
            | START
+           | OWNER
            | REMAINDER
 
       The value HERE represents the current absolute offset in the file.
 
       The value START represents the absolute offset (in bytes) of the
       start of the collection it is used in.
+      
+      The value OWNER represents a collection's owning collection. You
+      can use OWNER.recordName to access an owner record.
 
       The value REMAINDER represents the unknown quantity that takes
       up the rest of the data in the datafile (GLOBAL) or collection (LOCAL)
       as of this point in the file. It can be used in arrays to indicate
       "as many as fit the rest of the file or collection".
+
 
   type     BYTE               8 bit value
            | ASCII            8 bit ascii value (expressly not called a 'char')
@@ -29,9 +34,9 @@ The parser knows a relatively small language:
            | ULONG            32 bit unsigned integer
            | <type>[<value>]  array notation
            | <collection name>  custom type (think "struct")
-           | COLLECTION<<name>
+           | COLLECTION<name>
 
-      The COLLECTION<<name>> type indicates a block of data that conforms
+      The COLLECTION<<name> type indicates a block of data that conforms
       to the collection indicated by the value of <name>. For instance:
 
         ASCII[4] name
@@ -46,9 +51,11 @@ The parser knows a relatively small language:
   record   RESERVED <type>
            | <type> <name>
            | (GLOBAL|LOCAL|IMMEDIATE)? <type> OFFSET <name> (TO <collection name>)? (RELATIVE TO <name>)?
+           | RELATIVE <type> OFFSET <name> TO <collection name> FROM <value>
 
       Sometimes specs have "reserved" data, which is a byte, short, etc. that
-      basically acts as a spacer. These will be read and then discarded
+      basically acts as a spacer, or is reserved for a placeholder for use in 
+      a future version of the specification. These will be read and then discarded.
 
       For offsets, we need an indicator that tells us whether it's:
 
@@ -58,6 +65,9 @@ The parser knows a relatively small language:
 
       Or, if the offset is relative to another record, RELATIVE TO <name of that
       record, within scope>.
+      
+        RELATIVE offsets to some collection 
+
 
   comparator    any language-supported numerical comparator
   conditional   (<name> <comparator> <value>)
@@ -65,6 +75,7 @@ The parser knows a relatively small language:
 
       conditioned collection blocks let us generate parsers that can deal with
       multiple versions of data blocks (since specs tend to change over the years).
+
 
   collection name: <name>
   collection identifier: [Defining] Collection <collection name>
@@ -74,13 +85,14 @@ The parser knows a relatively small language:
       the start of the binary data file, and its parse function will be
       bound to the Parser.parse(data) function for starting a parse run.
 
-  collection: <collection identifier> { <collection body> }
 
+  collection: <collection identifier> { <collection body> }
   collection body: (record | collection | conditioned)*
 
       Collections can be empty, but if not they list records and possible "private"
       collections for use as "structs" in that collection. Any parent collection
       won't see it.
+
 
 It has an even smaller set of functions and macros:
 

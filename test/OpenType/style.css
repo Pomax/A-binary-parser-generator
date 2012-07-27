@@ -1,0 +1,56 @@
+details {
+  display: inline-block;
+  vertical-align: top;
+}
+
+details summary {
+  cursor: pointer;
+}
+
+details div {
+  padding-bottom: 1em;
+  padding-right: 1em;
+  background-color: rgba(230, 175, 0, 0.05);
+  border: 1px solid grey;
+}
+
+.no-details details:before {
+  content: "? ";
+  color: #C14;
+  position: relative;
+  top: 2px;
+  left: 4px;
+}
+
+.no-details details.open:before {
+  content: "? ";
+}
+
+#holder {
+  width: 300px;
+  margin: auto;
+  border: 5px dashed black;
+  padding: 5px;
+  background-color: rgba(0,0,255,0.05);
+  text-align: center;
+}
+
+#holder.hover {
+  background-color: rgba(0,255,0,0.2);
+}
+
+
+#holder .aside {
+  font-size: 80%;
+  font-style: italic;
+}
+
+#data_obj span {
+  cursor: pointer;
+  color: blue;
+}
+
+h1 {
+  font-variant: small-caps;
+  text-align: center;
+}

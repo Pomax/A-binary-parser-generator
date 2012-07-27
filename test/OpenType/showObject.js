@@ -14,7 +14,8 @@ function spacer(n) {
  */
 function showObject(title, htmlelement, obj) {
   var content = __showObject(obj, 0);
-  htmlelement.innerHTML = "<b style='display: inline-block; margin-bottom: 1em; text-decoration: underline;'>"+title.toUpperCase()+"</b>\n" + content;
+  htmlelement.innerHTML = "<span onclick='$(\"details\").removeAttr(\"open\")'>collapse all</span> - <span onclick='$(\"details\").attr(\"open\",\"true\")'>expand all</span><br>\n"+
+                          "<b style='display: inline-block; margin-bottom: 1em; text-decoration: underline;'>"+title.toUpperCase()+"</b>\n" + content;
   // Polyfill a given set of elements
   jQuery('details', htmlelement).details();
   $('html').addClass($.fn.details.support ? 'details' : 'no-details');

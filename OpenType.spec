@@ -308,7 +308,7 @@ Collection name {
 
   Collection _langTagRecord {
     USHORT length
-    USHORT OFFSET offset RELATIVE TO name.stringOffset // String offset from start of storage area (in bytes)
+    USHORT OFFSET offset RELATIVE TO OWNER.stringOffset // String offset from start of storage area (in bytes)
   }
 
   USHORT format
@@ -328,10 +328,10 @@ Collection name {
   }
   // Start of storage area. Not decided on how to do the referencing here yet...
   // FIXME: HACK! but maybe a private var works? Hmm...
-  //        at any rate, PARENT.length does not exist yet at this point,
+  //        at any rate, OWNER.length does not exist yet at this point,
   //        so this won't work:
   //
-  //var v = PARENT.length - (HERE-START);
+  //var v = OWNER.length - (HERE-START);
   //ASCII[v] stringStorage
 }
 
@@ -528,7 +528,6 @@ Collection OS_2 {
 // https://www.microsoft.com/typography/otspec/post.htm
 Collection post {
   ULONG version
-//  _fixed italicAngle
   ULONG italicAngle
   SHORT underlinePosition
   SHORT underlineThickness
@@ -541,6 +540,7 @@ Collection post {
   if(version==0x00020000) {
     USHORT numberOfGlyphs
     //
+    //  FIXME
     //  This is commented off because there is no transform for resolving RHS table.values
     //
     //  if(numberOfGlyphs!=maxp.numGlyphs) {
@@ -640,7 +640,7 @@ Collection prep {
 
 /**
 
-  Optional tables: CFF:
+  Optional tables: CFF and VORG
 
     CFF  - PostScript font program (compact font format)
     VORG - Vertical Origin
@@ -699,14 +699,14 @@ Collection GSUB {
           }
 
           // Offset to LangSys table, relative to the beginning of the Script table
-          RELATIVE USHORT OFFSET LangSys TO _LangSysTable FROM(PARENT.PARENT.START)
+          RELATIVE USHORT OFFSET LangSys TO _LangSysTable FROM OWNER.START
         }
 
         _LangSysRecord[LangSysCount] LangSysRecords
       }
 
       // Offset to Script table, relative to the beginning of the ScriptList
-      RELATIVE USHORT OFFSET Script TO _ScriptTable FROM(PARENT.PARENT.START + PARENT.PARENT.ScriptList)
+      RELATIVE USHORT OFFSET Script TO _ScriptTable FROM (OWNER.OWNER.START + OWNER.OWNER.ScriptList)
     }
 
     _ScriptRecord[ScriptCount] ScriptRecords
@@ -727,7 +727,7 @@ Collection GSUB {
       }
 
       // Offset to Feature table, relative to the beginning of the FeatureList
-      RELATIVE USHORT OFFSET Feature TO _FeatureTable FROM(PARENT.PARENT.START + PARENT.PARENT.FeatureList)
+      RELATIVE USHORT OFFSET Feature TO _FeatureTable FROM (OWNER.OWNER.START + OWNER.OWNER.FeatureList)
     }
 
     _FeatureRecord[FeatureCount] FeatureRecords  // Array of FeatureRecords - zero-based (first feature has FeatureIndex = 0) - listed alphabetically by FeatureTag
@@ -770,9 +770,9 @@ Collection GSUB {
         // ==========================================
         // LookupType 1: Single Substitution Subtable
         // ==========================================
-        if(PARENT.LookupType==1) {
+        if(OWNER.LookupType==1) {
           // Offset to Coverage table, relative to the beginning of the Substitution table
-          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
           if(SubstFormat==1) {
             // Add to original GlyphID to get substitute GlyphID
             SHORT DeltaGlyphID
@@ -788,8 +788,8 @@ Collection GSUB {
         // ============================================
         // LookupType 2: Multiple Substitution Subtable
         // ============================================
-        if(PARENT.LookupType==2) {
-          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+        if(OWNER.LookupType==2) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
           USHORT SequenceCount
           USHORT[SequenceCount] Sequence
 
@@ -805,8 +805,8 @@ Collection GSUB {
         // =============================================
         // LookupType 3: Alternate Substitution Subtable
         // =============================================
-        if(PARENT.LookupType==3) {
-          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+        if(OWNER.LookupType==3) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
           USHORT AlternateSetCount
           USHORT[AlternateSetCount] AlternateSet
 
@@ -822,8 +822,8 @@ Collection GSUB {
         // ============================================
         // LookupType 4: Ligature Substitution Subtable
         // ============================================
-        if(PARENT.LookupType==4) {
-          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+        if(OWNER.LookupType==4) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
           USHORT LigSetCount
           USHORT[LigSetCount] LigatureSet
 
@@ -848,7 +848,7 @@ Collection GSUB {
         // ===============================================================================
         // LookupType 5: Contextual Substitution Subtable - This one is properly messed up
         // ===============================================================================
-        if(PARENT.LookupType==5) {
+        if(OWNER.LookupType==5) {
 
           Collection _SubstLookupRecord {
             USHORT SequenceIndex
@@ -859,7 +859,7 @@ Collection GSUB {
           // Context Substitution Format 1
           // =============================
           if(SubstFormat==1) {
-            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
             USHORT SubRuleSetCount
             USHORT[SubRuleSetCount] SubRuleSet
 
@@ -886,8 +886,8 @@ Collection GSUB {
           // Context Substitution Format 2
           // =============================
           if(SubstFormat==2) {
-            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM(START)
-            RELATIVE USHORT OFFSET ClassDef TO _ClassDefTable FROM(START)
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+            RELATIVE USHORT OFFSET ClassDef TO _ClassDefTable FROM START
             USHORT SubClassSetCnt
             USHORT[SubClassSetCnt] SubClassSet
 
@@ -926,20 +926,20 @@ Collection GSUB {
         // =======================================================
         // LookupType 6: Chaining Contextual Substitution Subtable
         // =======================================================
-        if(PARENT.LookupType==6) {
+        if(OWNER.LookupType==6) {
           // ... CONTINUE SPEC HERE...
         }
 
         // ====================================
         // LookupType 7: Extension Substitution
         // ====================================
-        if(PARENT.LookupType==7) {
+        if(OWNER.LookupType==7) {
         }
 
         // ======================================================================
         // LookupType 8: Reverse Chaining Contextual Single Substitution Subtable
         // ======================================================================
-        if(PARENT.LookupType==8) {
+        if(OWNER.LookupType==8) {
         }
       }
 
@@ -976,7 +976,6 @@ Collection JSTF {}
 
 // http://www.microsoft.com/typography/otspec/dsig.htm
 Collection DSIG {
-  // "private" collections
   Collection _signature {
     ULONG	ulFormat      	        // format of the signature
     ULONG	ulLength	              // Length of signature in bytes
@@ -987,7 +986,7 @@ Collection DSIG {
     USHORT	usReserved1	          // Reserved for later; use 0 for now
     USHORT	usReserved2	          // Reserved for later; use 0 for now
     ULONG	cbSignature	            // Length (in bytes) of the PKCS#7 packet in pbSignature
-    BYTE[cbSignature]	bSignature	// PKCS#7 packet
+    BYTE[cbSignature]	pbSignature	// PKCS#7 packet
   }
 
   ULONG	  ulVersion

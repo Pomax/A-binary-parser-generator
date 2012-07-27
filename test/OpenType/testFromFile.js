@@ -3,7 +3,7 @@ var debug = false;
 var filetype = "OpenType font";
 
 function getData(url, callback, asByteCode) {
-  var xhr = new XMLHttpRequest();
+  var xhr = new XMLHttpRequest({MozSystem: true});
   xhr.open('GET', url, true);
   if(asByteCode) { xhr.responseType = 'arraybuffer'; }
   if(xhr.mozResponseType) { xhr.mozResponseType = xhr.responseType; }
@@ -12,6 +12,7 @@ function getData(url, callback, asByteCode) {
       callback(xhr);
     }
   }
+  window.console.log(url);
   xhr.send(null);
 }
 
@@ -58,8 +59,10 @@ if (typeof window.FileReader === 'undefined') {} else {
   var holder = document.getElementById('holder');
 
   holder.ondragover = function () { $(holder).addClass('hover'); return false; };
-  holder.ondragend = function () { $(holder).removeClass('hover'); return false; };
+  holder.ondragend = holder.onmouseout = holder.onblur = function () { $(holder).removeClass('hover'); return false; };
   holder.ondrop = function (e) {
+    $(holder).removeClass('hover');
+    $("#data_obj").text("Loading your font...");
     e.preventDefault();
     var file = e.dataTransfer.files[0],
         reader = new FileReader(),
@@ -70,10 +73,7 @@ if (typeof window.FileReader === 'undefined') {} else {
       xhrData = {pointer: 0, marks: [], bytecode: buildDataView(data)};
       load();
     };
-
-    console.log(file);
     reader.readAsArrayBuffer(file);
-
     return false;
   };
 }

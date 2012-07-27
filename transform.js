@@ -98,11 +98,11 @@ function generateParser(specfilecontent) {
 
   // Convert empty collections
   search = "(^[ \\t]*)Collection[\\W]*(\\w+)\\s*\\{\\s*\\}";
-  replace = "$1var read$2 = function(data, parent) {\n"+
+  replace = "$1var read$2 = function(data, owner) {\n"+
             "$1  var struct = {};\n"+
             "$1  parser.bindInstance(\"$2\", struct);\n" +
             "$1  struct.__pointer = data.pointer;\n"+
-            "$1  struct.__parent = parent;\n"+
+            "$1  struct.__owner = owner;\n"+
             "$1  struct.__blocklength = 0;\n"+
             "$1  struct.__typeName = '$2';\n"+
             "$1  return struct;\n"+
@@ -113,11 +113,11 @@ function generateParser(specfilecontent) {
 
   // Convert non-empty collections into object generator functions
   search = "^([ \\t]*)Collection[\\W]*(\\S+)\\s*{([\\w\\W]+?)^\\1}";  // note the +?, for non-greedy selection.
-  replace = "$1var read$2 = function(data, parent) {\n"+
+  replace = "$1var read$2 = function(data, owner) {\n"+
             "$1  var struct = {};\n"+
             "$1  parser.bindInstance(\"$2\", struct);\n"+
-            "$1  struct.__pointer = data.pointer;"+
-            "$1  struct.__parent = parent;\n"+
+            "$1  struct.__pointer = data.pointer;\n"+
+            "$1  struct.__owner = owner;\n"+
             "$3"+
             "$1  struct.__blocklength = data.pointer - struct.__pointer;\n"+
             "$1  struct.__typeName = '$2';\n"+
@@ -143,7 +143,7 @@ function generateParser(specfilecontent) {
 
   // Skip over any reserved records (i.e. read-and-forget)
   search = "([ \\t]*)RESERVED\\s*(\\w+)";
-  replace = "$1parser.read$2(data)";
+  replace = "$1struct.__reserved = parser.read$2(data) // \"throwaway\" reserved value";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
 
@@ -157,8 +157,7 @@ function generateParser(specfilecontent) {
 
 
   // Deal with offsets to specific structs relative to some global offset (indicated in FROM(...))
-  search = "([ \\t]*)RELATIVE ([\\w_]+) OFFSET (\\w+)\\s*TO ([^\\s]+) FROM\\(([^)]+)\\).*$";
-  // $1RELATIVE $2 OFFSET $3 TO $4 FROM($5)
+  search = "([ \\t]*)RELATIVE ([\\w_]+) OFFSET (\\w+)\\s*TO ([^\\s]+) FROM (.+)$";
   replace = "$1struct.$3 = parser.getReadFunction(\"$2\")(data, struct);\n"+
             "$1data.marks.push(data.pointer);\n"+
             "$1struct.$3Data = parser.readStructure(data, (typeof $4 === 'undefined' ? parser.getReadFunction(\"$4\") : $4), \"GLOBAL\", struct, ($5 + struct.$3));\n"+
@@ -207,11 +206,11 @@ function generateParser(specfilecontent) {
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
   // FIXME: this is horribly inefficient =)
-  search = "([^\.])PARENT";
-  replace = "$1struct.__parent";
+  search = "([^\.])OWNER";
+  replace = "$1struct.__owner";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
-  search = "\.PARENT";
-  replace = ".__parent";
+  search = "\.OWNER";
+  replace = ".__owner";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
   search = "([^\.])START";
   replace = "$1struct.__pointer";
@@ -356,10 +355,10 @@ function generateParser(specfilecontent) {
    * generic array filling function, using whatever
    * reader can deal with type <type>.
    */
-  var readArray = function(parser, data, parent, array, type, readcount) {
+  var readArray = function(parser, data, owner, array, type, readcount) {
     var readFunction = parser.getReadFunction(type);
     while(readcount-->0) {
-      array.push(readFunction(data, parent));
+      array.push(readFunction(data, owner));
     }
   };
   predefined.push("readArray: "+readArray.toString());
@@ -369,11 +368,11 @@ function generateParser(specfilecontent) {
    * reader can deal with type <type>, but with positions
    * in the data stream determined by a secondary indexing array.
    */
-  var readOffsetArray = function(parser, data, parent, array, type, readcount, indexarray, offset) {
+  var readOffsetArray = function(parser, data, owner, array, type, readcount, indexarray, offset) {
     var readFunction = parser.getReadFunction(type), i;
     for(i=0; i<readcount; i++) {
       data.pointer = offset + indexarray[i];
-      array.push(readFunction(data, parent));
+      array.push(readFunction(data, owner));
     }
   };
   predefined.push("readOffsetArray: "+readOffsetArray.toString());
