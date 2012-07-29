@@ -604,16 +604,43 @@ Collection glyf {
       USHORT[numberOfContours] endPtsOfContours
       USHORT instructionLength
       BYTE[instructionLength] instructions
-      BYTE	flags[n]
-      BYTE or SHORT	xCoordinates[ ]	First coordinates relative to (0,0); others are relative to previous point.
-      BYTE or SHORT	yCoordinates[ ]
+
+
+      //  The official spec does not tell us how to calculate
+      //  the number of flags, but leaves it implicitly based
+      //  on the end point number. If a shape has W coordinates,
+      //  then endPtsOfContours.last() contains the array
+      //  position for the last coordinate.
+      //  
+      //  As such, flags[] has length endPtsOfContours.last()+1
+
+      // FIXME: hack at the moment, exploiting the fact that this
+      //        run in a javascript environment, and JS is not converted.
+
+      struct.__v = (struct.endPtsOfContours[struct.numberOfContours-1])-1;
+      BYTE[__v] flags
+
+//      SHORT[]	xCoordinates DECODE USING flags AS {condition: "value & 0x02 == 0x02", true: BYTE, false: SHORT}
+//      SHORT[]	yCoordinates DECODE USING flags AS {condition: "value & 0x04 == 0x04", true: BYTE, false: SHORT}
     }
     if(numberOfContours < 0) {
+      USHORT flags
+      USHORT glyphIndex
+
+      // ARG_1_AND_2_ARE_WORDS switching (flags bit 0)
+      if(flags & 0x01 == 0x00) {
+        BYTE argument1
+        BYTE argument2
+      }
+      if(flags & 0x01 == 0x01) {
+        SHORT argument1
+        SHORT argument2
+      }
     }
   }
 
   // we probably do not want to read all this data in immediately
-  // _glyfHeader[maxp.numGlyphs] glyphs
+  _glyfHeader[maxp.numGlyphs] glyphs
 */
 }
 
