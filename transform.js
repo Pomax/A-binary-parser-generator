@@ -103,6 +103,9 @@ function generateParser(specfilecontent) {
             "$1  parser.bindInstance(\"$2\", struct);\n" +
             "$1  struct.__pointer = data.pointer;\n"+
             "$1  struct.__owner = owner;\n"+
+            "$1  struct.__typeTable = {};\n"+
+            "$1  struct.__startMarks = {};\n"+
+            "$1  struct.__endMarks = {};\n"+
             "$1  struct.__blocklength = 0;\n"+
             "$1  struct.__typeName = '$2';\n"+
             "$1  return struct;\n"+
@@ -118,6 +121,9 @@ function generateParser(specfilecontent) {
             "$1  parser.bindInstance(\"$2\", struct);\n"+
             "$1  struct.__pointer = data.pointer;\n"+
             "$1  struct.__owner = owner;\n"+
+            "$1  struct.__typeTable = {};\n"+            
+            "$1  struct.__startMarks = {};\n"+
+            "$1  struct.__endMarks = {};\n"+
             "$3"+
             "$1  struct.__blocklength = data.pointer - struct.__pointer;\n"+
             "$1  struct.__typeName = '$2';\n"+
@@ -149,7 +155,10 @@ function generateParser(specfilecontent) {
 
   // Deal with offsets to specific structs
   search = "([ \\t]*)(GLOBAL|LOCAL|IMMEDIATE) ([\\w_]+) OFFSET (\\w+)\\s*TO ([^\\s]+)";
-  replace = "$1struct.$4 = parser.getReadFunction(\"$3\")(data, struct);\n"+
+  replace = "$1struct.__startMarks['$4'] = data.pointer;\n"+
+            "$1struct.__typeTable['$4'] = '$3';\n"+
+            "$1struct.$4 = parser.getReadFunction(\"$3\")(data, struct);\n"+
+            "$1struct.__endMarks['$4'] = data.pointer;\n"+
             "$1data.marks.push(data.pointer);\n"+
             "$1struct.$4Data = parser.readStructure(data, (typeof $5 === 'undefined' ? parser.getReadFunction(\"$5\") : $5), \"$2\", struct, struct.$4);\n"+
             "$1data.pointer = data.marks.pop();\n";
@@ -158,7 +167,10 @@ function generateParser(specfilecontent) {
 
   // Deal with offsets to specific structs relative to some global offset (indicated in FROM(...))
   search = "([ \\t]*)RELATIVE ([\\w_]+) OFFSET (\\w+)\\s*TO ([^\\s]+) FROM (.+)$";
-  replace = "$1struct.$3 = parser.getReadFunction(\"$2\")(data, struct);\n"+
+  replace = "$1struct.__startMarks['$3'] = data.pointer;\n"+
+            "$1struct.__typeTable['$3'] = '$2';\n"+
+            "$1struct.$3 = parser.getReadFunction(\"$2\")(data, struct);\n"+
+            "$1struct.__endMarks['$3'] = data.pointer;\n"+
             "$1data.marks.push(data.pointer);\n"+
             "$1struct.$3Data = parser.readStructure(data, (typeof $4 === 'undefined' ? parser.getReadFunction(\"$4\") : $4), \"GLOBAL\", struct, ($5 + struct.$3));\n"+
             "$1data.pointer = data.marks.pop();\n";
@@ -167,13 +179,19 @@ function generateParser(specfilecontent) {
 
   // offsets that are relative to some other offset
   search = "([ \\t]*)(BYTE|ASCII|SHORT|USHORT|UINT24|LONG|ULONG)\\s*OFFSET\\s*(\\S+)\\s*RELATIVE TO\\s*(\\w+)\\.(\\w+)";
-  replace = "$1struct.$3 = parser.getReadFunction(\"$2\")(data); // offset relative to $4.$5\n";
+  replace = "$1struct.__startMarks['$3'] = data.pointer;\n"+
+            "$1struct.__typeTable['$3'] = '$2';\n"+
+            "$1struct.$3 = parser.getReadFunction(\"$2\")(data);\n"+
+            "$1struct.__endMarks['$3'] = data.pointer;\n";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
 
   // Read typed records
   search = "([ \\t]*)(BYTE|ASCII|SHORT|USHORT|UINT24|LONG|ULONG)\\s*(\\w+)";
-  replace = "$1struct.$3 = parser.read$2(data);";
+  replace = "$1struct.__startMarks['$3'] = data.pointer;\n"+
+            "$1struct.__typeTable['$3'] = '$2';\n"+
+            "$1struct.$3 = parser.read$2(data);\n"+
+            "$1struct.__endMarks['$3'] = data.pointer;\n";
   specfilecontent = regExpReplace(specfilecontent, search, replace);
 
 

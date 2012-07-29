@@ -1,0 +1,27 @@
+details {
+  display: inline-block;
+  vertical-align: top;
+}
+
+details summary {
+  cursor: pointer;
+}
+
+details div {
+  padding-bottom: 1em;
+  padding-right: 1em;
+  background-color: rgba(230, 175, 0, 0.05);
+  border: 1px solid grey;
+}
+
+.no-details details:before {
+  content: "▶ ";
+  color: #C14;
+  position: relative;
+  top: 2px;
+  left: 4px;
+}
+
+.no-details details.open:before {
+  content: "▼ ";
+}

@@ -1,0 +1,17 @@
+#holder {
+  width: 300px;
+  margin: auto;
+  border: 4px dashed black;
+  padding: 5px;
+  background-color: rgba(200,200,255,0.2);
+  text-align: center;
+}
+
+#holder.hover {
+  background-color: rgba(0,255,0,0.5);
+}
+
+#holder .aside {
+  font-size: 80%;
+  font-style: italic;
+}

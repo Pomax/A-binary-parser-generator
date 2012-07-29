@@ -1,34 +1,62 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
-    <title>A Binary Data Parser Generator</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>test</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="details.css">
+    <link rel="stylesheet" href="dragAndDrop.css">
   </head>
-
   <body>
-    <div class="main">
-      <h1>Let's have a look at your font from a bytecode perspective</h1>
-      <div id="holder">
+
+    <header id="header">
+      <h1>let's have a look at your font from a bytecode perspective</h1>
+      <div id="holder" class="drag-and-drop">
         Drag-and-drop your font here...
         <div class="aside">parsing based on <a href="../../OpenType.spec">this</a> .spec file</div>
       </div>
-      <pre id="data_obj">loading...</pre>
-    </div>
-    <div class="sidebar">
-      <pre class="hex" id="codepre"></pre>
+    </header>
+
+    <section id="content">
+      <!-- main data -->
+      <div id="main">
+            <pre id="data_obj">loading...</pre>
+      </div>
+
+      <!-- right sidebar -->
+      <div id="sidebar">
+            <div id="hexcode">
+              <header>
+                <pre class="spacer"></pre>
+                <pre>00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F</pre>
+              </header>
+              <div class="data">
+                <pre id="gutter"></pre>
+                <pre id="lines"></pre>
+              </div>
+            </div>
+      </div>
+    </section>
+
+    <!--
+      Load scripts last, but do it in a way that makes it easy to view-source
+    -->
+    <div style="display:none" id="script-set">
+      <!-- external scripts -->
+      <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+      <script type="text/javascript" src="https://raw.github.com/mathiasbynens/jquery-details/master/jquery.details.min.js"></script>
+      <script type="text/javascript" src="http://flesler-plugins.googlecode.com/files/jquery.scrollTo-1.4.2-min.js"></script>
+      <script type="text/javascript" src="https://raw.github.com/litera/jquery-scrollintoview/master/jquery.scrollintoview.min.js"></script>
+
+      <!-- requirements -->
+      <script type="text/javascript" src="../../transform.js"></script>
+      <script type="text/javascript" src="../../jDataView.js"></script>
+      <script type="text/javascript" src="../../buildDataView.js"></script>
+
+      <!-- on-page scripts -->
+      <script type="text/javascript" src="dragAndDrop.js"></script>
+      <script type="text/javascript" src="showObject.js"></script>
+      <script type="text/javascript" src="testFromFile.js"></script>
     </div>
   </body>
-
-  <!-- external scripts -->
-  <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
-  <script type="text/javascript" src="https://raw.github.com/mathiasbynens/jquery-details/master/jquery.details.min.js"></script>
-
-  <!-- local scripts -->
-  <script type="text/javascript" src="../../transform.js"></script>
-  <script type="text/javascript" src="../../jDataView.js"></script>
-  <script type="text/javascript" src="../../buildDataView.js"></script>
-  <script type="text/javascript" src="showObject.js"></script>
-  <script type="text/javascript" src="testFromFile.js"></script>
-
 </html>

@@ -1,6 +1,8 @@
 // font debugging
 var debug = false;
 var filetype = "OpenType font";
+var spec_file = '../../OpenType.spec', specData = false;
+var xhr_file = 'UbuntuMono-R.ttf', xhrData = false;
 
 function getData(url, callback, asByteCode) {
   var xhr = new XMLHttpRequest({MozSystem: true});
@@ -16,13 +18,11 @@ function getData(url, callback, asByteCode) {
   xhr.send(null);
 }
 
-var xhr_file = 'UbuntuMono-R.ttf', xhrData = false;
 getData(xhr_file, function(xhr) {
   var dataResponse = xhr.mozResponseArrayBuffer || xhr.mozResponse || xhr.responseArrayBuffer || xhr.response;
   xhrData = {pointer: 0, marks: [], data: dataResponse, bytecode: buildDataView(dataResponse)};
 }, true);
 
-var spec_file = '../../OpenType.spec', specData = false;
 getData(spec_file, function(xhr) {
   specData = xhr.responseText;
   var src = document.createElement("script");
@@ -56,70 +56,56 @@ function load(rawData) {
       hex = "",
       last=strData.length,
       i, hv,
-      wrap = 8*2;
+      wrap = 8*2,
+      lno="0x00000\n";
+
   for(i=0; i<last; i++) {
     hv = strData[i].toString(16).toUpperCase();
     hex += (hv.length == 1 ? "0" : '') + hv + (i > 0 && (i+1) % wrap === 0 ?  "\n" : " ");
+    if (i > 0 && (i+1) % wrap === 0) {
+      var mark = (i+1).toString(16).toUpperCase();
+      while(mark.length<5) { mark = "0" + mark; }
+      lno += "0x" + mark + "\n";
+    }
   }
-  $('#codepre').text(hex);
-  $('.sidebar').css("width",(3*wrap + 2)+"em");
+  $('#lines').text(hex);
+  $('#main').width($(document).width() - $('#sidebar').width() - 20);
+  $('#gutter').text(lno);
 }
 
 
 tryLoad();
 
+
 /**
  * map to hex range
  */
-function mapToHex(start, length) {
-  start *= 3;
-  length *= 3;
-  var hex = $('#codepre').text();
-  hex = hex.replace("<span>",'');
-  hex = hex.replace("</span>",'');
-  hex = hex.substring(0,start) + "<span >" + hex.substring(start,start+length) + "</span>" + hex.substring(start+length);
-  $('#codepre').html(hex);
-  $('.sidebar').height($(document).height()-50);
-/*
-  var fooOffset = jQuery('#codepre span').offset(),
-      destination = fooOffset.top + 200;
-  $('.sidebar').scrollTop(destination);
-*/
+function mapToHex(start, end) {
+  var selector = "#lines",
+      hex = $(selector).text();
+      hex = hex.replace(/<\/?span>/g,'');
+
+  start = 3 * start;
+  end = 3 * end - 1;
+
+  if(end>start) {
+    hex = hex.substring(0,start) + "<span>" + hex.substring(start,end) + "</span>" + hex.substring(end);
+  }
+
+  $(selector).html(hex);
+
+  if(end<start) return;
+
+  // Scroll to that position (if not already in screen)
+  var cr = $(selector+" span")[0].getBoundingClientRect()
+  if(cr.top<140 || cr.top>120+$("#sidebar").height()) {
+    $(selector+' span')[0].scrollIntoView();
+  }
+  // a correction might be necessary, due to css positioning tricks
+  cr = $(selector+" span")[0].getBoundingClientRect()
+  if(cr.top<140) {
+    $("#sidebar").scrollTo("-=20px");
+  }
+
   return false;
-}
-
-/**
- * scroll to hex range
- */
-function scrollToHex(start, length) {
-  start *= 3;
-  length *= 3;
-  //...
-  return false;
-}
-
-/**
- * Try to enable drag and drop for files
- */
-if (typeof window.FileReader === 'undefined') {} else {
-  var holder = document.getElementById('holder');
-
-  holder.ondragover = function () { $(holder).addClass('hover'); return false; };
-  holder.ondragend = holder.onmouseout = holder.onblur = function () { $(holder).removeClass('hover'); return false; };
-  holder.ondrop = function (e) {
-    $(holder).removeClass('hover');
-    $("#data_obj").text("Loading your font...");
-    e.preventDefault();
-    var file = e.dataTransfer.files[0],
-        reader = new FileReader(),
-        data;
-
-    reader.onload = function (event) {
-      data = event.target.result;
-      xhrData = {pointer: 0, marks: [], bytecode: buildDataView(data)};
-      load(data);
-    };
-    reader.readAsArrayBuffer(file);
-    return false;
-  };
 }

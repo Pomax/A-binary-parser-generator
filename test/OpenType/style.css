@@ -1,76 +1,117 @@
-details {
-  display: inline-block;
-  vertical-align: top;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
-details summary {
-  cursor: pointer;
+body {
+  overflow: hidden;
+  background-color: #F5F5F5;
 }
 
-details div {
-  padding-bottom: 1em;
-  padding-right: 1em;
-  background-color: rgba(230, 175, 0, 0.05);
-  border: 1px solid grey;
-}
-
-.no-details details:before {
-  content: "? ";
-  color: #C14;
-  position: relative;
-  top: 2px;
-  left: 4px;
-}
-
-.no-details details.open:before {
-  content: "? ";
-}
-
-#holder {
-  width: 300px;
-  margin: auto;
-  border: 5px dashed black;
-  padding: 5px;
-  background-color: rgba(0,0,255,0.05);
+#header {
+  position: fixed;
+  z-index: 2;
+  top: 0;
   text-align: center;
+
+  background-color: rgba(90, 220, 140, 0.4);
+  color: #444;
+
+  height: 120px;    /* height value must correspond with section.top */
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-#holder.hover {
-  background-color: rgba(0,255,0,0.2);
+h1 {
+  font-variant: small-caps;
+  text-align: center;
+  margin: 0;
+  margin-bottom: 0.5em;
+  padding: 0;
 }
 
+/* ------ CONTENT AREA ------ */
 
-#holder .aside {
-  font-size: 80%;
-  font-style: italic;
+#content {
+  position: absolute;
+  top: 110px;       /* corresponds to #header.height */
+  left: 0;
+  right: 0;
+  bottom: 0;       /* corresponds to 20 + footer.height */
 }
+
+#main, #sidebar {
+  width: 50%;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+  top: 10px;
+  overflow: auto;
+}
+
+#main {
+  padding-left: 1em;
+}
+
+#sidebar {
+  right: 0;
+  border-left: 1px solid #D6D6D6;
+  background: white;
+  background-color: #F9F9F9;
+  padding: 10px;
+  width: 70ex;
+}
+
+/** ---------------- **/
 
 #data_obj span {
   cursor: pointer;
   color: blue;
 }
 
-h1 {
-  font-variant: small-caps;
-  text-align: center;
+#data_obj span.typeinfo {
+  color: rgba(0,0,0,0.2);
 }
 
-.main, .sidebar {
+#data_obj span.typeinfo:hover {
+  color: black;
+}
+
+/** ---------------- **/
+
+#hexcode .data pre {
   display: inline-block;
   vertical-align: top;
-  margin: auto;
 }
 
-.sidebar {
-  position: absolute;
-  right: 0;
-  height: 100%;
-  font-family: monospace;
-  margin-left: auto;
-  overflow-y: scroll;
+#hexcode header {
+  position: fixed;
+  top: 120px;
+  height: 1.25em;
+  background-color: #F9F9F9;
 }
 
-#codepre span {
+#hexcode header * {
+  display: inline-block;
+  margin: 0;
+}
+
+#gutter {
+}
+
+#gutter, #hexcode .spacer {
+  width: 12ex;
+}
+
+#lines {
+  color: #666;
+}
+
+#lines span {
   background-color: yellow;
   color: blue;
 }
