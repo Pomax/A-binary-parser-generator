@@ -9,19 +9,21 @@
  */
 
 
-/** 
+/**
+ * required sub specs
+ */
+REQUIRES {
+  cmap head hhea hmtx maxp name OS_2 post       // Required tables
+  BASE GDEF GPOS GSUB JSTF                      // Advanced typographic tables
+  DSIG gasp hdmx kern LTSH PCLT VDMX vhea vmtx  // Optional opentype tables
+}
+
+/**
  * SPLINE FONT HEADER AND INCLUDES
  */
 Collection SFNT {
-  // required sub specs
-  REQUIRES {
-    cmap head hhea hmtx maxp name OS_2 post       // Required tables
-    BASE GDEF GPOS GSUB JSTF                      // Advanced typographic tables
-    DSIG gasp hdmx kern LTSH PCLT VDMX vhea vmtx  // Optional opentype tables
-  }
-
   LONG version                          // 0x00010000 for TTF , string 'OTTO' for CFF
-  
+
   if(version != 0x001000 && version != 'OTTO') {
     TERMINATE Version mismatch: found [version] instead of 0x00010000 (TTF) or 'OTTO' (CFF)
   }

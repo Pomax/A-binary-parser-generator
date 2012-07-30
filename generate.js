@@ -37,7 +37,7 @@ if(typeof jDataView === "undefined") {
 if(typeof process.argv !== "undefined") {
   var arguments = process.argv.splice(2);
   if(typeof fs !== "undefined") {
-    eval(fs.readFileSync('transform.js')+'');
+    eval(fs.readFileSync('transform_ast.js')+'');
   }
 
   debug = false;
