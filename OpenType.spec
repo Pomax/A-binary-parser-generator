@@ -766,7 +766,7 @@ Collection GSUB {
             _RangeRecord[RangeCount] RangeRecords
           }
         }
-
+        
         // ==========================================
         // LookupType 1: Single Substitution Subtable
         // ==========================================
@@ -886,6 +886,25 @@ Collection GSUB {
           // Context Substitution Format 2
           // =============================
           if(SubstFormat==2) {
+
+            Collection _ClassDefTable {
+              USHORT ClassFormat
+              if(ClassFormat==1) {
+                USHORT StartGlyph
+                USHORT GlyphCount
+                USHORT[GlyphCount] ClassValueArray
+              }
+              if(ClassFormat==2) {
+                USHORT ClassRangeCount
+                Collection _ClassRangeRecord {
+                  USHORT Start
+                  USHORT End
+                  USHORT Class
+                }
+                _ClassRangeRecord[RangeCount] ClassRangeRecord
+              }
+            }
+
             RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
             RELATIVE USHORT OFFSET ClassDef TO _ClassDefTable FROM START
             USHORT SubClassSetCnt
