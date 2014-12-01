@@ -964,7 +964,11 @@ Collection GSUB {
 
       _SubTable[SubTableCount] SubTables OFFSET BY SubTable RELATIVE TO START
 
-      USHORT MarkFilteringSet                    // Index (base 0) into GDEF mark glyph sets structure. This field is only present if bit UseMarkFilteringSet of lookup flags is set.
+      // Index (base 0) into GDEF mark glyph sets structure. This field is only 
+      // present if bit UseMarkFilteringSet (0x0010) of lookup flags is set.
+      if(LookupFlag&0x0010) {
+        USHORT MarkFilteringSet
+      }        
     }
 
     // now this one is interesting. It's an array of Lookup Table structs,
