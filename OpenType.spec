@@ -78,11 +78,11 @@ Collection cmap {
       USHORT searchRange
       USHORT entrySelector
       USHORT rangeShift
-      USHORT[segCountX2 / 2] endCount // the table encodes segCount as twice the value it really is...
+      USHORT[segCountX2/2] endCount // the table encodes segCount as twice the value it really is...
       RESERVED USHORT
-      USHORT[segCount] startCount
-      SHORT[segCount] idDelta
-      USHORT[segCount] idRangeOffset
+      USHORT[segCountX2/2] startCount
+      SHORT[segCountX2/2] idDelta
+      USHORT[segCountX2/2] idRangeOffset
 
       // FIXME: ideally I don't want to see struct.length
       //        in the following array. It's in there right
@@ -188,7 +188,7 @@ Collection cmap {
   Collection _encodingRecord {
     USHORT platformID
     USHORT encodingID
-    LOCAL ULONG OFFSET offset TO _subtable // offset from beginning of table to the subtable for this encoding.
+    RELATIVE ULONG OFFSET offset TO _subtable FROM OWNER.START // offset from beginning of table to the subtable for this encoding.
   }
 
   USHORT version
