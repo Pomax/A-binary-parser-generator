@@ -78,11 +78,11 @@ Collection cmap {
       USHORT searchRange
       USHORT entrySelector
       USHORT rangeShift
-      USHORT[segCountX2 / 2] endCount // the table encodes segCount as twice the value it really is...
+      USHORT[segCountX2/2] endCount // the table encodes segCount as twice the value it really is...
       RESERVED USHORT
-      USHORT[segCount] startCount
-      SHORT[segCount] idDelta
-      USHORT[segCount] idRangeOffset
+      USHORT[segCountX2/2] startCount
+      SHORT[segCountX2/2] idDelta
+      USHORT[segCountX2/2] idRangeOffset
 
       // FIXME: ideally I don't want to see struct.length
       //        in the following array. It's in there right
@@ -188,13 +188,12 @@ Collection cmap {
   Collection _encodingRecord {
     USHORT platformID
     USHORT encodingID
-    LOCAL ULONG OFFSET offset TO _subtable // offset from beginning of table to the subtable for this encoding.
+    RELATIVE ULONG OFFSET offset TO _subtable FROM OWNER.START // offset from beginning of table to the subtable for this encoding.
   }
 
   USHORT version
   USHORT numTables
   _encodingRecord[numTables] encodingRecords
-  _subtable[numTables] subtables
 }
 
 /**
@@ -295,44 +294,33 @@ Collection maxp {
  */
 Collection name {
 
-  // "private" collections
+  USHORT format
+  USHORT count
+  USHORT stringOffset
+
+  Collection _nameString {
+    ASCII[OWNER.length] nameString
+  }
   Collection _nameRecord {
     USHORT platformID
     USHORT encodingID
     USHORT languageID
     USHORT nameID
     USHORT length
-    USHORT offset // String offset from start of storage area (in bytes)
-    //  USHORT OFFSET offset RELATIVE TO name.stringOffset
+    RELATIVE USHORT OFFSET offset TO _nameString FROM OWNER.START+owner.stringOffset
   }
+
+  _nameRecord[count] nameRecord
 
   Collection _langTagRecord {
     USHORT length
     USHORT OFFSET offset RELATIVE TO OWNER.stringOffset // String offset from start of storage area (in bytes)
   }
 
-  USHORT format
-  if(format==0) {
-    USHORT count
-    USHORT stringOffset
-    //  LOCAL USHORT OFFSET stringOffset  // Offset to start of string storage, from start of table
-    _nameRecord[count] nameRecords
-  }
   if(format==1) {
-    USHORT count
-    USHORT stringOffset
-    //  LOCAL USHORT OFFSET stringOffset  // Offset to start of string storage, from start of table.
-    _nameRecord[count] nameRecord
     USHORT langTagCount
-    _langTagRecord[langTagCount] langTagRecords
+    _langTagRecord[langTagCount] langTagRecord
   }
-  // Start of storage area. Not decided on how to do the referencing here yet...
-  // FIXME: HACK! but maybe a private var works? Hmm...
-  //        at any rate, OWNER.length does not exist yet at this point,
-  //        so this won't work:
-  //
-  //var v = OWNER.length - (HERE-START);
-  //ASCII[v] stringStorage
 }
 
 /**
@@ -668,9 +656,750 @@ Collection BASE {}
 
 Collection GDEF {}
 
-Collection GPOS {}
 
-// global substitution table
+
+/**
+
+  OpenType Layout Common Table Formats
+
+  See https://www.microsoft.com/typography/OTSPEC/chapter2.htm
+
+**/
+
+
+Collection _ScriptList {
+  USHORT ScriptCount
+
+  Collection _ScriptRecord {
+    ASCII[4] ScriptTag
+
+    Collection _ScriptTable {
+
+      Collection _LangSysTable {
+        RESERVED USHORT                      // OFFSET LookupOrder NULL (reserved for an offset to a reordering table)
+        USHORT ReqFeatureIndex               // Index of a feature required for this language system - if no required features = 0xFFFF
+        USHORT FeatureCount                  // Number of FeatureIndex values for this language system - excludes the required feature
+        USHORT[FeatureCount] FeatureIndex    // Array of indices into the FeatureList - in arbitrary order
+      }
+
+      Collection _LangSysRecord {
+        ASCII[4] LangSysTag
+
+        // Offset to LangSys table, relative to the beginning of the Script table
+        RELATIVE USHORT OFFSET LangSys TO _LangSysTable FROM OWNER.START
+      }
+
+      RELATIVE USHORT OFFSET DefaultLangSys TO _LangSysTable FROM START
+      USHORT LangSysCount
+
+      _LangSysRecord[LangSysCount] LangSysRecords
+    }
+
+    // Offset to Script table, relative to the beginning of the ScriptList
+    RELATIVE USHORT OFFSET Script TO _ScriptTable FROM (OWNER.OWNER.START + OWNER.OWNER.ScriptList)
+  }
+
+  _ScriptRecord[ScriptCount] ScriptRecords
+}
+
+
+Collection _FeatureList {
+  USHORT FeatureCount                          // Number of FeatureRecords in this table
+
+  Collection _FeatureRecord {
+    ASCII[4] FeatureTag                        // 4-byte feature identification tag
+
+    Collection _FeatureTable {
+      RESERVED USHORT                          // OFFSET FeatureParams = NULL (reserved for offset to FeatureParams)
+      USHORT LookupCount                       // Number of LookupList indices for this feature
+      USHORT[LookupCount] LookupListIndex      // Array of LookupList indices for this feature - zero-based (first lookup is LookupListIndex = 0)
+    }
+
+    // Offset to Feature table, relative to the beginning of the FeatureList
+    RELATIVE USHORT OFFSET Feature TO _FeatureTable FROM (OWNER.OWNER.START + OWNER.OWNER.FeatureList)
+  }
+
+  _FeatureRecord[FeatureCount] FeatureRecords  // Array of FeatureRecords - zero-based (first feature has FeatureIndex = 0) - listed alphabetically by FeatureTag
+}
+
+
+// Used by: GPOS LookupType 2: Pair Adjustment Positioning Subtable
+// Used by: GPOS LookupType 7: Contextual Positioning Subtables
+// Used by: GPOS LookupType 8: Chaining Contextual Positioning Subtable
+// Used by: GSUB LookupType 5: Contextual Substitution Subtable - This one is properly messed up
+Collection _ClassDefTable {
+  USHORT ClassFormat
+  if(ClassFormat==1) {
+    USHORT StartGlyph
+    USHORT GlyphCount
+    USHORT[GlyphCount] ClassValueArray
+  }
+  if(ClassFormat==2) {
+    USHORT ClassRangeCount
+
+    Collection _ClassRangeRecord {
+      USHORT Start
+      USHORT End
+      USHORT Class
+    }
+    _ClassRangeRecord[RangeCount] ClassRangeRecord
+  }
+}
+
+
+Collection _CoverageTable {
+  USHORT CoverageFormat
+  if(CoverageFormat==1) {
+    USHORT GlyphCount
+    USHORT[GlyphCount] GlyphArray
+  }
+  if(CoverageFormat==2) {
+    USHORT RangeCount
+
+    Collection _RangeRecord {
+      USHORT Start
+      USHORT End
+      USHORT StartCoverageIndex
+    }
+    _RangeRecord[RangeCount] RangeRecords
+  }
+}
+
+
+
+/**
+
+  GPOS - The Glyph Positioning Table
+
+  See https://www.microsoft.com/typography/OTSPEC/gpos.htm
+
+**/
+
+
+Collection GPOS {
+  LONG Version
+
+  if(Version!=0x00010000) {
+    TERMINATE Unknown GPOS table version
+  }
+
+
+  LOCAL USHORT OFFSET ScriptList TO _ScriptList
+
+  LOCAL USHORT OFFSET FeatureList TO _FeatureList
+
+
+  Collection _LookupList {
+    USHORT LookupCount                           // Number of lookups in this table
+    USHORT[LookupCount] Lookup                   // Array of offsets to Lookup tables -from beginning of LookupList - zero based (first lookup is Lookup index = 0)
+
+    // Seen:  LookupType 2
+    // Seen:  LookupType 4
+    // Seen:  LookupType 6
+
+    Collection _Lookuptable {
+      USHORT LookupType                          // GSUB-specific lookup types, explained below
+      USHORT LookupFlag                          // Lookup qualifiers
+      USHORT SubTableCount                       // Number of SubTables for this lookup
+      USHORT[SubTableCount] SubTable             // Array of offsets to SubTables - from beginning of Lookup table
+
+      Collection _SubTable {
+        // shared by all subtables
+        USHORT PosFormat
+
+
+        // Anchor Table
+        // Seen:      format=1
+        // Used by: GPOS LookupType 3: Cursive Attachment Positioning Subtable
+        // Used by: GPOS LookupType 4: MarkToBase Attachment Positioning Subtable
+        // Used by: GPOS LookupType 5: MarkToLigature Attachment Positioning Subtable
+        // Used by: GPOS LookupType 6: MarkToMark Attachment Positioning Subtable
+        // Used by: MarkArray
+
+        Collection _Anchor {
+          USHORT AnchorFormat
+
+          if(AnchorFormat==1) {
+            SHORT XCoordinate         // Horizontal value-in design units
+            SHORT YCoordinate         // Vertical value-in design units
+          }
+
+          if(AnchorFormat==2) {
+            SHORT XCoordinate         // Horizontal value-in design units
+            SHORT YCoordinate         // Vertical value-in design units
+            USHORT AnchorPoint        // Index to glyph contour point
+          }
+
+          if(AnchorFormat==3) {
+            SHORT XCoordinate         // Horizontal value-in design units
+            SHORT YCoordinate         // Vertical value-in design units
+            USHORT XDeviceTable       // Offset to Device table for X coordinate-from beginning of Anchor table (may be NULL)
+            USHORT YDeviceTable       // Offset to Device table for Y coordinate-from beginning of Anchor table (may be NULL)
+            // XXX XXX Need _DeviceTable definitions
+          }
+        }
+
+        // Used by: GPOS LookupType 4: MarkToBase Attachment Positioning Subtable
+        // Used by: GPOS LookupType 5: MarkToLigature Attachment Positioning Subtable
+        // Used by: GPOS LookupType 6: MarkToMark Attachment Positioning Subtable
+        Collection _MarkArray {
+          USHORT MarkCount                    // Number of MarkRecords
+
+          Collection _MarkRecord {
+            USHORT Class                        // Class defined for this mark
+            // Offset to Anchor table-from beginning of MarkArray table
+            RELATIVE USHORT OFFSET MarkAnchor TO _Anchor FROM OWNER.START
+          }
+
+          _MarkRecord[MarkCount] MarkRecord   // Array of MarkRecords-in Coverage order
+        }
+
+
+        // ==========================================
+        // LookupType 1: Single Adjustment Positioning Subtable
+        // ==========================================
+        // Not tested
+        if(OWNER.LookupType==1) {
+          // Offset to Coverage table, relative to the beginning of the Substitution table
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+
+          Collection _ValueRecord {
+            if(OWNER.ValueFormat&0x0001) {
+              SHORT XPlacement    // Horizontal adjustment for placement-in design units
+            }
+            if(OWNER.ValueFormat&0x0002) {
+              SHORT YPlacement    // Vertical adjustment for placement-in design units
+            }
+            if(OWNER.ValueFormat&0x0004) {
+              SHORT XAdvance    // Horizontal adjustment for advance-in design units (only used for horizontal writing)
+            }
+            if(OWNER.ValueFormat&0x0008) {
+              SHORT YAdvance    // Vertical adjustment for advance-in design units (only used for vertical writing)
+            }
+            if(OWNER.ValueFormat&0x0010) {
+              USHORT XPlaDevice // Offset to Device table for horizontal placement-measured from beginning of PosTable (may be NULL)
+            }
+            if(OWNER.ValueFormat&0x0020) {
+              USHORT YPlaDevice // Offset to Device table for vertical placement-measured from beginning of PosTable (may be NULL)
+            }
+            if(OWNER.ValueFormat&0x0040) {
+              USHORT XAdvDevice // Offset to Device table for horizontal advance-measured from beginning of PosTable (may be NULL)
+            }
+            if(OWNER.ValueFormat&0x0080) {
+              USHORT YAdvDevice // Offset to Device table for vertical advance-measured from beginning of PosTable (may be NULL)
+            }
+          }
+
+          if(PosFormat==1) {
+            // Defines the types of data in the ValueRecord
+            USHORT ValueFormat
+            // ValueRecord Value
+            _ValueRecord[1] Value
+          }
+          if(PosFormat==2) {
+            // Defines the types of data in the ValueRecord
+            USHORT ValueFormat
+            //Number of ValueRecords
+            USHORT ValueCount
+            // Array of ValueRecords-positioning values applied to glyphs
+            _ValueRecord[ValueCount] Value
+          }
+        }
+
+        // ============================================
+        // LookupType 2: Pair Adjustment Positioning Subtable
+        // ============================================
+        // Seen:      type 2 format 1  ValueFormat2==3
+        // Not seen:  type 2 format 2
+        if(OWNER.LookupType==2) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+
+          // =============================
+          // Format 1: Adjustments for glyph pairs
+          // =============================
+          if(PosFormat==1) {
+            // Defines the types of data in ValueRecord1-for the first glyph in the pair-may be zero (0)
+            USHORT ValueFormat1
+            // Defines the types of data in ValueRecord2-for the second glyph in the pair-may be zero (0)
+            USHORT ValueFormat2
+            // Number of PairSet tables
+            USHORT PairSetCount
+            // Array of offsets to PairSet tables-from beginning of PairPos subtable-ordered by Coverage Index
+            USHORT[PairSetCount] PairSetOffset
+
+            Collection _ValueRecord1 {
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0001) {
+                SHORT XPlacement    // Horizontal adjustment for placement-in design units
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0002) {
+                SHORT YPlacement    // Vertical adjustment for placement-in design units
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0004) {
+                SHORT XAdvance    // Horizontal adjustment for advance-in design units (only used for horizontal writing)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0008) {
+                SHORT YAdvance    // Vertical adjustment for advance-in design units (only used for vertical writing)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0010) {
+                USHORT XPlaDevice // Offset to Device table for horizontal placement-measured from beginning of PosTable (may be NULL)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0020) {
+                USHORT YPlaDevice // Offset to Device table for vertical placement-measured from beginning of PosTable (may be NULL)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0040) {
+                USHORT XAdvDevice // Offset to Device table for horizontal advance-measured from beginning of PosTable (may be NULL)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat1&0x0080) {
+                USHORT YAdvDevice // Offset to Device table for vertical advance-measured from beginning of PosTable (may be NULL)
+              }
+            }
+            Collection _ValueRecord2 {
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0001) {
+                SHORT XPlacement  // Horizontal adjustment for placement-in design units
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0002) {
+                SHORT YPlacement  // Vertical adjustment for placement-in design units
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0004) {
+                SHORT XAdvance    // Horizontal adjustment for advance-in design units (only used for horizontal writing)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0008) {
+                SHORT YAdvance    // Vertical adjustment for advance-in design units (only used for vertical writing)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0010) {
+                USHORT XPlaDevice // Offset to Device table for horizontal placement-measured from beginning of PosTable (may be NULL)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0020) {
+                USHORT YPlaDevice // Offset to Device table for vertical placement-measured from beginning of PosTable (may be NULL)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0040) {
+                USHORT XAdvDevice // Offset to Device table for horizontal advance-measured from beginning of PosTable (may be NULL)
+              }
+              if(OWNER.OWNER.OWNER.ValueFormat2&0x0080) {
+                USHORT YAdvDevice // Offset to Device table for vertical advance-measured from beginning of PosTable (may be NULL)
+              }
+            }
+
+            Collection _PairValueRecord {
+              USHORT SecondGlyph
+              _ValueRecord1[1] Value1
+              _ValueRecord2[1] Value2
+            }
+
+            Collection _PairSetTable {
+              USHORT PairValueCount
+              _PairValueRecord[PairValueCount] PairValueRecords
+            }
+
+            _PairSetTable[PairSetCount] PairSetOffsets OFFSET BY PairSetOffset RELATIVE TO START
+          }
+
+          // PairPosFormat2 subtable: Class pair adjustment
+          if(PosFormat==2) {
+            // Defines the types of data in ValueRecord1-for the first glyph in the pair-may be zero (0)
+            USHORT ValueFormat1
+            // Defines the types of data in ValueRecord2-for the second glyph in the pair-may be zero (0)
+            USHORT ValueFormat2
+            // Offset to ClassDef table-from beginning of PairPos subtable-for the first glyph of the pair
+            RELATIVE USHORT OFFSET ClassDef1 TO _ClassDefTable FROM START
+            // Offset to ClassDef table-from beginning of PairPos subtable-for the second glyph of the pair
+            RELATIVE USHORT OFFSET ClassDef2 TO _ClassDefTable FROM START
+            // Number of classes in Class1Record table-includes Class0
+            USHORT Class1Count
+            // Number of classes in Class2Record table-includes Class0
+            USHORT Class2Count
+
+            Collection _Class2Record {
+              // Positioning for first glyph-empty if ValueFormat1 = 0
+              _ValueRecord1[1] Value1
+              // Positioning for second glyph-empty if ValueFormat2 = 0
+              _ValueRecord2[1] Value2
+            }
+
+            Collection _Class1Record {
+              // Array of Class2 records-ordered by Class2
+              _Class2Record[Class2Count] Class2Record
+            }
+
+            // Array of Class1 records-ordered by Class1
+            _Class1Record[Class1Count] Class1Record
+          }
+        }
+
+        // =============================================
+        // LookupType 3: Cursive Attachment Positioning Subtable
+        // =============================================
+        if(OWNER.LookupType==3) {
+          RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+
+          USHORT EntryExitCount
+
+          Collection _EntryExitRecord {
+            RELATIVE USHORT OFFSET EntryAnchor TO _Anchor FROM OWNER.START
+            RELATIVE USHORT OFFSET ExitAnchor TO _Anchor FROM OWNER.START
+          }
+
+          // Array of EntryExit records-in Coverage Index order
+          _EntryExitRecord[EntryExitCount] EntryExitRecord
+        }
+
+        // ============================================
+        // LookupType 4: MarkToBase Attachment Positioning Subtable
+        // ============================================
+        if(OWNER.LookupType==4) {
+          RELATIVE USHORT OFFSET MarkCoverage TO _CoverageTable FROM START
+          RELATIVE USHORT OFFSET BaseCoverage TO _CoverageTable FROM START
+
+          USHORT ClassCount
+
+          // Offset to MarkArray table-from beginning of MarkBasePos subtable
+          RELATIVE USHORT OFFSET MarkArray TO _MarkArray FROM START
+
+          Collection _BaseRecordEntry {
+            RELATIVE USHORT OFFSET BaseAnchorEntry TO _Anchor FROM OWNER.OWNER.START
+          }
+
+          Collection _BaseRecord {
+            // Array of offsets (one per class) to Anchor tables-from beginning of BaseArray table-ordered by class-zero-based
+            _BaseRecordEntry[OWNER.OWNER.ClassCount] BaseAnchor
+
+            // These don't work
+            //  RELATIVE USHORT OFFSET BaseAnchor[OWNER.OWNER.ClassCount] TO _Anchor FROM OWNER.START
+            //  _Anchor[OWNER.OWNER.ClassCount] BaseAnchorTables OFFSET BY BaseAnchor RELATIVE TO OWNER.START
+          }
+
+          Collection _BaseArray {
+            USHORT BaseCount                    // Number of BaseRecords
+            _BaseRecord[BaseCount] BaseRecord   // Array of BaseRecords-in order of BaseCoverage Index
+          }
+
+          // Offset to BaseArray table-from beginning of MarkBasePos subtable
+          RELATIVE USHORT OFFSET BaseArray TO _BaseArray FROM START
+        }
+        //["LookupListData"]["Lookuptables"][0]["SubTables"][0]
+        //  ["BaseArrayData"]["BaseCount"]
+        //  ["BaseArrayData"]["BaseRecord"][0]["BaseAnchor"][0]["BaseAnchorEntryData"]["XCoordinate"]
+
+
+        // ===============================================================================
+        // LookupType 5: MarkToLigature Attachment Positioning Subtable
+        // ===============================================================================
+        if(OWNER.LookupType==5) {
+
+          RELATIVE USHORT OFFSET MarkCoverage TO _CoverageTable FROM START
+          RELATIVE USHORT OFFSET LigatureCoverage TO _CoverageTable FROM START
+
+          USHORT ClassCount             // Number of defined mark classes
+
+          // Offset to MarkArray table-from beginning of MarkLigPos subtable
+          RELATIVE USHORT OFFSET MarkArray TO _MarkArray FROM START
+
+
+          Collection _LigatureRecordEntry {
+            RELATIVE USHORT OFFSET LigatureAnchorEntry TO _Anchor FROM OWNER.OWNER.START
+          }
+
+          Collection _ComponentRecord {
+            _LigatureRecordEntry[OWNER.OWNER.ClassCount] LigatureAnchor
+          }
+
+          Collection _LigatureAttach {
+            USHORT ComponentCount       // Number of ComponentRecords in this ligature
+            // Array of ComponentRecords-ordered in writing direction
+            _ComponentRecord[ComponentCount] ComponentRecord
+          }
+
+          Collection _LigatureArray {
+            USHORT LigatureCount        // Number of LigatureAttachs
+            _LigatureAttach[LigatureCount] LigatureAttach   // Array of LigatureAttachs-in order of LigatureCoverage Index
+          }
+
+          // Offset to LigatureArray table-from beginning of MarkLigPos subtable
+          RELATIVE USHORT OFFSET LigatureArray TO _LigatureArray FROM START
+        }
+
+
+        // =======================================================
+        // LookupType 6: MarkToMark Attachment Positioning Subtable
+        // =======================================================
+        // Seen: lookupType 6 format 1
+        if(OWNER.LookupType==6) {
+          if(PosFormat==1) {
+            RELATIVE USHORT OFFSET Mark1Coverage TO _CoverageTable FROM START
+            RELATIVE USHORT OFFSET Mark2Coverage TO _CoverageTable FROM START
+
+            USHORT ClassCount           // Number of Combining Mark classes defined
+
+            Collection _Mark2RecordEntry {
+              RELATIVE USHORT OFFSET Mark2AnchorEntry TO _Anchor FROM OWNER.OWNER.START
+            }
+
+            // Array of offsets (one per class) to Anchor tables
+            //  -from beginning of Mark2Array table-zero-based array
+            Collection _Mark2Record {
+              _Mark2RecordEntry[OWNER.OWNER.ClassCount] Mark2Anchor
+            }
+
+            Collection _Mark2Array {
+              USHORT Mark2Count                     // Number of Mark2 records
+              _Mark2Record[Mark2Count] Mark2Record  // Array of Mark2 records-in Coverage order
+            }
+
+            // Offset to MarkArray table for Mark1-from beginning of MarkMarkPos subtable
+            RELATIVE USHORT OFFSET Mark1Array TO _MarkArray FROM START
+            // Offset to Mark2Array table for Mark2-from beginning of MarkMarkPos subtable
+            RELATIVE USHORT OFFSET Mark2Array TO _Mark2Array FROM START
+          }
+          if(PosFormat!=1) {
+            WARN GPOS LookupType 6: saw invalid format (!=1)
+          }
+        }
+
+
+        // ====================================
+        // LookupType 7: Contextual Positioning Subtables
+        // ====================================
+        if(OWNER.LookupType==7) {
+
+          Collection _PosLookupRecord {
+            USHORT SequenceIndex        // Index to input glyph sequence-first glyph = 0
+            USHORT LookupListIndex      // Lookup to apply to that position-zero-based
+          }
+
+          if(PosFormat==1) {
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+
+            USHORT PosRuleSetCount      // Number of PosRuleSet tables
+            USHORT[PosRuleSetCount] PosRuleSet
+
+            Collection _PosRuleSetTable {
+              USHORT PosRuleCount
+              USHORT[PosRuleCount] PosRule
+
+              Collection _PosRuleTable {
+                USHORT GlyphCount
+                USHORT PosCount
+                USHORT[GlyphCount-1] Input
+                _PosLookupRecord[PosCount] PosLookupRecord
+              }
+
+              // Array of offsets to PosRule tables, relative to the beginning of the PosRuleSet table
+              _PosRuleTable[PosRuleCount] PosRuleTables OFFSET BY PosRule RELATIVE TO START
+            }
+
+            // Array of offsets to PosRuleSet tables-from beginning of ContextPos subtable-ordered by Coverage Index
+            _PosRuleSetTable[PosRuleSetCount] PosRuleSetTables OFFSET BY PosRuleSet RELATIVE TO START
+          }
+
+          if(PosFormat==2) {
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+
+            RELATIVE USHORT OFFSET ClassDef TO _ClassDefTable FROM START
+
+            USHORT PosClassSetCnt
+            USHORT[PosClassSetCnt] PosClassSet
+
+            Collection _PosClassSetTable {
+              USHORT PosClassRuleCnt
+              USHORT[PosClassRuleCnt] PosClassRule
+
+              Collection _PosClassRuleTable {
+                USHORT GlyphCount
+                USHORT PosCount
+                USHORT[GlyphCount-1] Input
+                _PosLookupRecord[PosCount] PosLookupRecord
+              }
+
+              // Array of offsets to PosClassRule tables, relative to the beginning of the PosClassRuleSet table
+              _PosClassRuleTable[PosClassRuleCount] PosClassRuleTables OFFSET BY PosClassRule RELATIVE TO START
+            }
+
+            // Array of offsets to PosClassRuleSet tables-from beginning of ContextPos subtable-ordered by Coverage Index
+            _PosClassSetTable[PosClassSetCnt] PosClassSetTables OFFSET BY PosClassSet RELATIVE TO START
+          }
+
+          if(PosFormat==3) {
+            USHORT GlyphCount
+            USHORT PosCount
+
+            Collection _CoverageEntry {
+              RELATIVE USHORT OFFSET CoverageEntry TO _CoverageEntry FROM OWNER.START
+            }
+            _CoverageEntry[GlyphCount] Coverage
+            // XXX Is this correct? good enough?  Can't directly do array of offsets
+            // RELATIVE USHORT OFFSET Coverage[GlyphCount] TO _CoverageTable FROM START
+
+            _PosLookupRecord[PosCount] PosLookupRecord
+          }
+        }
+
+
+        // ======================================================================
+        // LookupType 8: Chaining Contextual Positioning Subtable
+        // ======================================================================
+        if(OWNER.LookupType==8) {
+
+          Collection _PosLookupRecord {
+            USHORT SequenceIndex        // Index to input glyph sequence-first glyph = 0
+            USHORT LookupListIndex      // Lookup to apply to that position-zero-based
+          }
+
+          // Format 1: Simple Chaining Context Glyph Positioning
+          if(PosFormat==1) {
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+
+            USHORT ChainPosRuleSetCount
+            USHORT[ChainPosRuleSetCount] ChainPosRuleSet
+
+            Collection _ChainPosRuleSetTable {
+              USHORT ChainPosRuleCount
+              USHORT[ChainPosRuleCount] ChainPosRule
+
+              Collection _ChainPosRuleTable {
+                USHORT BacktrackGlyphCount
+                USHORT[BacktrackGlyphCount] Backtrack
+
+                USHORT InputGlyphCount
+                USHORT[InputGlyphCount-1] Input
+
+                USHORT LookAheadGlyphCount
+                USHORT[LookAheadGlyphCount] LookAhead
+
+                USHORT PosCount
+                _PosLookupRecord[PosCount] PosLookupRecord
+              }
+
+              // Array of offsets to ChainPosRule tables, relative to the beginning of the ChainPosRuleSet table
+              _ChainPosRuleTable[ChainPosRuleCount] ChainPosRuleTables OFFSET BY ChainPosRule RELATIVE TO START
+            }
+
+            // Array of offsets to ChainPosRuleSet tables-from beginning of ContextPos subtable-ordered by Coverage Index
+            _ChainPosRuleSetTable[ChainPosRuleSetCount] ChainPosRuleSetTables OFFSET BY ChainPosRuleSet RELATIVE TO START
+          }
+
+          // Format 2: Class-based Chaining Context Glyph Positioning
+          if(PosFormat==2) {
+            RELATIVE USHORT OFFSET Coverage TO _CoverageTable FROM START
+
+            RELATIVE USHORT OFFSET BacktrackClassDef TO _ClassDefTable FROM START
+            RELATIVE USHORT OFFSET InputClassDef TO _ClassDefTable FROM START
+            RELATIVE USHORT OFFSET LookaheadClassDef TO _ClassDefTable FROM START
+
+            USHORT ChainPosClassSetCnt
+            USHORT[ChainPosClassSetCnt] ChainPosClassSet
+
+
+            Collection _ChainPosClassSetTable {
+              USHORT ChainPosClassRuleCount
+              USHORT[ChainPosClassRuleCount] ChainPosClassRule
+
+              Collection _ChainPosClassRuleTable {
+                USHORT BacktrackGlyphCount
+                USHORT[BacktrackGlyphCount] Backtrack
+
+                USHORT InputGlyphCount
+                USHORT[InputGlyphCount-1] Input
+
+                USHORT LookAheadGlyphCount
+                USHORT[LookAheadGlyphCount] LookAhead
+
+                USHORT PosCount
+                _PosLookupRecord[PosCount] PosLookupRecord
+              }
+
+              // Array of offsets to ChainPosClass tables, relative to the beginning of the ChainPosClassSet table
+              _ChainPosClassRuleTable[ChainPosClassCount] ChainPosClassRuleTables OFFSET BY ChainPosClassRule RELATIVE TO START
+            }
+
+            // Array of offsets to ChainPosClassSet tables-from beginning of ContextPos subtable-ordered by Coverage Index
+            _ChainPosClassSetTable[ChainPosClassSetCount] ChainPosClassSetTables OFFSET BY ChainPosClassSet RELATIVE TO START
+
+          }
+
+          // Format 3: Coverage-based Chaining Context Glyph Positioning
+          if(PosFormat==3) {
+            USHORT BacktrackGlyphCount
+
+            Collection _BacktrackCoverageEntry {
+              RELATIVE USHORT OFFSET BacktrackCoverageEntry TO _CoverageEntry FROM OWNER.START
+            }
+            _BacktrackCoverageEntry[BacktrackGlyphCount] BacktrackCoverage
+            //RELATIVE USHORT OFFSET BacktrackCoverage[BacktrackGlyphCount] TO _CoverageTable FROM START
+
+            USHORT InputGlyphCount
+
+            Collection _InputCoverageEntry {
+              RELATIVE USHORT OFFSET InputCoverageEntry TO _CoverageEntry FROM OWNER.START
+            }
+            _InputCoverageEntry[InputGlyphCount] InputCoverage
+            //RELATIVE USHORT OFFSET InputCoverage[InputGlyphCount] TO _CoverageTable FROM START
+
+            USHORT LookAheadGlyphCount
+
+            Collection _LookAheadCoverageEntry {
+              RELATIVE USHORT OFFSET LookAheadCoverageEntry TO _CoverageEntry FROM OWNER.START
+            }
+            _LookAheadCoverageEntry[LookAheadGlyphCount] LookAheadCoverage
+            //RELATIVE USHORT OFFSET LookaheadCoverage[LookaheadGlyphCount] TO _CoverageTable FROM START
+            // XXX XXX How to do this?    !!!!
+
+            USHORT PosCount
+            _PosLookupRecord[PosCount] PosLookupRecord
+          }
+        }
+
+
+        // ====================================
+        // LookupType 9: Extension Positioning
+        // ====================================
+        if(OWNER.LookupType==9) {
+          USHORT ExtensionLookupType
+          RELATIVE ULONG OFFSET ExtensionTable TO _SubTable FROM START
+        }
+        // XXX XXX Whoa!
+        //   Need to loop back to ? _SubTable ?
+        //   but as though LookupType were set to value ExtensionLookupType
+        // ? Must look at code in FreeType2 or TTX or FF ?
+
+
+        if(OWNER.LookupType<1) {
+          WARN GPOS LookupList subtables: saw invalid LookupType
+        }
+        if(OWNER.LookupType>9) {
+          WARN GPOS LookupList subtables: saw invalid LookupType
+        }
+
+      }
+
+      _SubTable[SubTableCount] SubTables OFFSET BY SubTable RELATIVE TO START
+
+      // Index (base 0) into GDEF mark glyph sets structure. This field is only
+      // present if bit UseMarkFilteringSet (0x0010) of lookup flags is set.
+      if(LookupFlag&0x0010) {
+        USHORT MarkFilteringSet
+      }
+    }
+
+    // now this one is interesting. It's an array of Lookup Table structs,
+    // each struct beginning at an offset indicated by the Lookup array.
+    _Lookuptable[LookupCount] Lookuptables OFFSET BY Lookup RELATIVE TO START
+  }
+
+  LOCAL USHORT OFFSET LookupList TO _LookupList
+}
+
+
+
+
+/**
+
+  GSUB - The Glyph Substitution Table
+
+  See https://www.microsoft.com/typography/OTSPEC/gsub.htm
+
+**/
+
+
 Collection GSUB {
   LONG Version
 
@@ -766,7 +1495,7 @@ Collection GSUB {
             _RangeRecord[RangeCount] RangeRecords
           }
         }
-        
+
         // ==========================================
         // LookupType 1: Single Substitution Subtable
         // ==========================================
@@ -964,7 +1693,11 @@ Collection GSUB {
 
       _SubTable[SubTableCount] SubTables OFFSET BY SubTable RELATIVE TO START
 
-      USHORT MarkFilteringSet                    // Index (base 0) into GDEF mark glyph sets structure. This field is only present if bit UseMarkFilteringSet of lookup flags is set.
+      // Index (base 0) into GDEF mark glyph sets structure. This field is only
+      // present if bit UseMarkFilteringSet (0x0010) of lookup flags is set.
+      if(LookupFlag&0x0010) {
+        USHORT MarkFilteringSet
+      }
     }
 
     // now this one is interesting. It's an array of Lookup Table structs,
