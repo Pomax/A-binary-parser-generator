@@ -295,44 +295,33 @@ Collection maxp {
  */
 Collection name {
 
-  // "private" collections
+  USHORT format
+  USHORT count
+  USHORT stringOffset
+
+  Collection _nameString {
+    ASCII[OWNER.length] nameString
+  }
   Collection _nameRecord {
     USHORT platformID
     USHORT encodingID
     USHORT languageID
     USHORT nameID
     USHORT length
-    USHORT offset // String offset from start of storage area (in bytes)
-    //  USHORT OFFSET offset RELATIVE TO name.stringOffset
+    RELATIVE USHORT OFFSET offset TO _nameString FROM OWNER.START+owner.stringOffset
   }
+
+  _nameRecord[count] nameRecord
 
   Collection _langTagRecord {
     USHORT length
     USHORT OFFSET offset RELATIVE TO OWNER.stringOffset // String offset from start of storage area (in bytes)
   }
 
-  USHORT format
-  if(format==0) {
-    USHORT count
-    USHORT stringOffset
-    //  LOCAL USHORT OFFSET stringOffset  // Offset to start of string storage, from start of table
-    _nameRecord[count] nameRecords
-  }
   if(format==1) {
-    USHORT count
-    USHORT stringOffset
-    //  LOCAL USHORT OFFSET stringOffset  // Offset to start of string storage, from start of table.
-    _nameRecord[count] nameRecord
     USHORT langTagCount
-    _langTagRecord[langTagCount] langTagRecords
+    _langTagRecord[langTagCount] langTagRecord
   }
-  // Start of storage area. Not decided on how to do the referencing here yet...
-  // FIXME: HACK! but maybe a private var works? Hmm...
-  //        at any rate, OWNER.length does not exist yet at this point,
-  //        so this won't work:
-  //
-  //var v = OWNER.length - (HERE-START);
-  //ASCII[v] stringStorage
 }
 
 /**
