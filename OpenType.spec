@@ -194,7 +194,6 @@ Collection cmap {
   USHORT version
   USHORT numTables
   _encodingRecord[numTables] encodingRecords
-  _subtable[numTables] subtables
 }
 
 /**
