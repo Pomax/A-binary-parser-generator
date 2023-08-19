@@ -3,7 +3,7 @@
  */
 function spacer(n) {
   var r = "";
-  while(n-->0) { r += "&nbsp;"; }
+  while(n-->0) { r += "&nbsp;"; }
   return r;
 }
 
